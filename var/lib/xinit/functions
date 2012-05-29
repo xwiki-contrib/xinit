@@ -1,0 +1,629 @@
+#!/bin/bash
+
+
+start_tomcat ()
+{
+	log "INFO" "Starting Tomcat Server ..."
+	
+	if [[ -z "`pidof ${TOMCAT_PROCESS_NAME}`" ]]; then
+
+		if [[ -e "$CATALINA_PID" ]]; then
+
+			log "INFO" "Found catalina.pid file, removing it ... "
+			rm -f "$CATALINA_PID"
+		fi
+		if [[ $JVM_DEBUG == yes ]]; then
+			
+			log "INFO" "Debug mode activated!"
+			CATALINA_OPTS="$CATALINA_OPTS $JVM_DEBUG_OPTS"
+		fi
+
+		# Stop OO Server if it is running (OO_SERVER_TYPE=0)
+		if [[ $OO_CHECK -eq 1 ]] && [[ $OO_SERVER_TYPE -eq 0 ]]; then 
+                        stop_openoffice
+                fi
+
+		# Start OpenOffice Daemon if OO_SERVER_TYPE=1
+                if [[ $OO_CHECK -eq 1 ]] && [[ $OO_SERVER_TYPE -eq 1 ]]; then
+                        start_openoffice
+                fi
+
+		/bin/su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
+
+		# If enabled, make first request
+		if [[ $MAKE_FIRST_REQUEST == yes ]]; then
+
+			log "INFO" "Making first request ... "
+			sleep 7
+
+			check_http 1
+	
+		fi
+
+	else
+
+		log "WARNING" "Java process found! Stop tomcat first!"
+	fi
+
+}
+
+stop_tomcat ()
+{
+        log "INFO" "Stopping Tomcat ..."
+
+        /bin/su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
+
+        sleep 8
+
+        if [[ -s $CATALINA_PID ]]; then
+
+                TOMCAT_PID="`cat $CATALINA_PID`"
+        else
+
+                TOMCAT_PID="`pidof ${TOMCAT_PROCESS_NAME}`"
+        fi
+
+        if [[ -n "$TOMCAT_PID" ]]; then
+
+                log "WARNING" "Java process still running. Killing it ..."
+		if [[ -n "`ps -eo pid | grep $TOMCAT_PID`" ]]; then
+
+	                kill -9 $TOMCAT_PID
+			sleep 2
+
+		fi
+
+                if [[ -e $CATALINA_PID ]]; then
+
+                        log "WARNING" "Pid file exists. Removing it ..."
+                        rm -f $CATALINA_PID
+                fi
+        fi
+
+	if [[ $OO_CHECK -eq 1 ]] && [[ $OO_SERVER_TYPE -eq 0 ]]; then
+
+		stop_openoffice
+	fi
+
+}
+
+restart_tomcat ()
+{
+
+	log "INFO" "Restarting Tomcat ..."
+	stop_tomcat
+	start_tomcat
+
+}
+
+check_proc ()
+{
+	echo -n "Checking Java process ... "
+
+	if [[ $PROCESS_CHECK != yes ]]; then
+
+		log "WARNING" "Check process functionality is not enabled. Please set PROCESS_CHECK=yes in xinit.cfg file to enable it. Bye Bye!"
+		exit 1
+	fi
+	
+	# If pid file doesn't exists...
+	if [[ ! -e $CATALINA_PID ]]; then
+
+		echo "FAILED"
+		log "CRITICAL" "Catalina pid file not found!"
+		if [[ "$1" -ne 1 ]]; then
+			send_Notification "Catalina pid file not found!"
+			restart_tomcat
+		fi
+		
+	fi
+
+	# If pid file exists but is empty
+	if [[ ! -s $CATALINA_PID ]]; then
+	
+		echo "FAILED"
+		log "CRITICAL" "Void pid!"
+		if [[ "$1" -ne 1 ]]; then
+			send_Notification "Void pid!"
+			restart_tomcat
+		fi
+
+	fi
+
+	# If pid file exists but the pid listed in this file doesn't exists
+	if [[ -s $CATALINA_PID ]]; then
+
+		pid="`cat $CATALINA_PID`"
+		if [[ -z "`ps --pid=$pid -o comm=`" ]]; then
+			
+			echo "FAILED"
+			log "CRITICAL" "Java process died"
+			if [[ "$1" -ne 1 ]]; then
+				send_Notification "Java process died"
+				restart_tomcat
+			fi
+
+		fi
+	fi
+	echo "OK"
+
+}
+
+check_http ()
+{
+
+	echo "Checking wiki availability..."
+
+	if [[ $CHECK_HTTP != yes ]]; then
+
+		log "WARNING" "Check wiki availability functionality is not enabled. Please set CHECK_HTTP=yes in xinit.cfg file to enable it. Bye Bye!"
+		exit 1
+
+	fi
+
+	if [[ -z ${CHECK_HTTP_URL} ]]; then
+		log "ERROR" "No URL was specified to check wiki availability. Please see CHECK_HTTP_URL parameter in xinit configuration."
+		exit 1
+	fi
+	
+	log "INFO" "URL: ${CHECK_HTTP_URL}"
+	cat /dev/null > ${REQUEST_ERROR_OUTPUT}
+
+	if [[ $USE_BASIC_AUTH == yes ]]; then
+
+		RESPONSE_CODE="`curl --write-out %{http_code} --location-trusted --insecure -u ${HTACCESS_USERNAME}:${HTACCESS_PASSWORD} --connect-timeout ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
+		EXIT_CODE="$?"
+
+	elif [[ $USE_BASIC_AUTH == no ]]; then
+
+		RESPONSE_CODE="`curl --write-out %{http_code} --location-trusted --insecure --connect-timeout ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
+		EXIT_CODE="$?"
+	fi
+
+	# DNS USE
+	if [[ $EXIT_CODE -eq 6 ]]; then
+		if [[ $USE_DNS == yes ]]; then
+			log "WARNING" "DNS Problem. Unable to resolve domain name for ${CHECK_HTTP_URL}"
+			send_Notification "DNS Problem. Unable to resolve domain name!"
+			exit 1
+		fi
+	fi
+	
+	# Check response code 
+	if [[ ${EXPECT_HTTP_RESPONSE_CODE} -ne ${RESPONSE_CODE} ]]; then
+		
+		# If test-http
+		if [[ $1 -ne 1 ]]; then
+			send_Notification "wiki is NOT responding! Response code: ${RESPONSE_CODE} Expect Code: ${EXPECT_HTTP_RESPONSE_CODE} Exit Code: ${EXIT_CODE} URL: ${CHECK_HTTP_URL}"
+			restart_tomcat
+		else
+			log "CRITICAL" "wiki is NOT responding! Response code: ${RESPONSE_CODE} Expect Code: ${EXPECT_HTTP_RESPONSE_CODE} Exit Code: ${EXIT_CODE} URL: ${CHECK_HTTP_URL}"
+		fi
+	else
+			log "INFO" "wiki is available! Response code: ${RESPONSE_CODE} Expect Code: ${EXPECT_HTTP_RESPONSE_CODE} Exit Code: ${EXIT_CODE}"
+	fi
+
+}
+
+show_help ()
+{
+	echo
+	echo " Usage: /etc/init.d/xwiki.sh [OPTIONS]"
+	echo
+	echo "	OPTIONS:"
+	echo
+	echo "		start			Start Tomcat server."
+	echo "		stop			Stop Tomcat server."
+	echo "		restart			Restart Tomcat server."
+	echo "		report			Send report by email. See MAIL parameter in xwiki.cfg"
+	echo "		show-report		Print a short report about xwiki/machine status."
+	echo "		list-parameters		Print all available parameters and current configuration."
+	echo "		check-proc		Check Tomcat(java) process."
+	echo "		check-http		Check if the wiki is responding or not."
+	echo "		check-openoffice	Check if OO Daemon is running and restart it if necessary. Only used for OO_SERVER_TYPE=1"
+	echo "		test-http		Just test if check-http works. No notifications or restart will be performed."
+	echo "		test-proc		Just test if check-proc works. No notifications or restart will be performed."
+	echo "		test-openoffice		Just test if OpenOffice Daemon is running or not. No actions are taken."		
+	echo "		check-install		Check XWiki installation (based on standard installation)."
+	echo "		nagios-info		Informations needed for Nagios to check XWiki availability will be printed."
+	echo "		version			Print Xinit and XWiki version."
+	echo
+
+}
+
+log ()
+{
+	local severity="$1"
+	local message="$2"
+	local _date="`date +%d-%m-%Y`"
+	local _time="`date +%T`"
+	
+	echo "${_date} ${_time} [${severity}]: ${message}" >> $LOG_FILE
+	echo "${message}"
+}
+
+send_Notification ()
+{
+	local message="$1"
+	
+	get_info
+	
+	if [[ $SEND_MAIL_NOTIFICATION == yes ]]; then
+		if [[ -z $MAIL ]]; then
+			log "WARNING" "No email address was set. Please see MAIL parameter."
+		else
+			send_Mail "$message"
+		fi
+        fi
+        
+        if [[ $SEND_JABBER_MESSAGE == yes ]]; then
+
+        	send_Jabber_Message "$message"
+
+        fi
+
+}
+
+get_info ()
+{
+	log "INFO" "Getting infos to send notification!"
+	
+	echo "#####SECTION SERVER_NAME#####" > $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+
+	if [[ -n "$SERVER_NAME" ]]; then
+
+		echo $SERVER_NAME >> $ATTACHE_FILE
+
+	else
+	
+		echo "`hostname | cut -d"." -f 1`" >> $ATTACHE_FILE
+
+	fi
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION FULL_SERVER_INFO#####" >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+	echo `uname -a` >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION XWIKI_VERSION#####" >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+	if [[ -s ${XWIKI_INSTALL_DIR}/WEB-INF/version.properties ]]; then
+	
+		cat ${XWIKI_INSTALL_DIR}/WEB-INF/version.properties | cut -d "=" -f 2 >> $ATTACHE_FILE
+
+	else
+
+		echo "${XWIKI_INSTALL_DIR}/WEB-INF/version.properties file not found or file size = 0" >> $ATTACHE_FILE
+
+	fi
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION XINIT_VERSION#####" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+	
+	grep "VERSION" /var/lib/xinit/vars | cut -d "=" -f2 >> $ATTACHE_FILE
+
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION IP_ADDRESSES#####" >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+
+	/sbin/ifconfig | grep inet | tr -s ' ' | cut -d " " -f1,2,3 >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION CONNECTION_TYPE_STATUS#####" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+
+	for port in ${CONNECTION_STATE_PORTS}; do
+		
+		echo "Port: $port" >> $ATTACHE_FILE
+		netstat -tn | egrep "^tcp.*:$port" | tr -s " " | cut -d " " -f6 | sort | uniq -c >> $ATTACHE_FILE
+		echo "" >> $ATTACHE_FILE
+
+	done
+
+	echo "#####SECTION DISK_USAGE#####" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+	
+	df -h >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION DATABASES_DISK_USAGE#####" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+
+	DBS="`mysql --user=$MYSQL_USER --password=$MYSQL_PASSWORD --host=$MYSQL_HOST -e "show databases;" | egrep -v "(Database|information_schema)"`"
+
+	for db in $DBS; do
+
+	        du -sh /var/lib/mysql/$db >> $ATTACHE_FILE
+
+	done
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION JAVA_THREADS_NUMBER#####" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+	
+	echo "Java Threads Number: `ps -L -C java | wc -l`" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION TOP_INFORMATION#####" >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+
+	PIDS=""
+
+	for daemon in $DAEMONS_TO_MONITOR ; do
+
+	        if [[ `pidof $daemon` ]]; then
+	                PIDS="$PIDS `pidof $daemon`"
+	        fi
+	
+	done
+	
+	pids_top_format="`echo "$PIDS" | sed 's/ //1' | sed 's/ /,/g'`"
+	
+	top -b -n 3 -d 0.5 -p${pids_top_format} >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION MYSQL_FULL_PROCESS_LIST#####" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+
+	if [[ `which mysql` ]]; then
+
+		mysql --user=$MYSQL_USER --password=$MYSQL_PASSWORD --host=$MYSQL_HOST -e "show full processlist;" >> $ATTACHE_FILE
+
+	else
+
+		log "WARNING" "Couldn't find mysql binary file."
+		echo "Couldn't find mysql binary" >> $ATTACHE_FILE
+	fi
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION HTTP_OUTPUT#####" >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+
+	cat ${REQUEST_ERROR_OUTPUT} >> $ATTACHE_FILE
+
+	echo "" >> $ATTACHE_FILE
+
+	echo "#####SECTION TOMCAT_LOGS#####" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+
+	tail -n $LOG_LINE_NUMBER ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+
+	
+	cat /dev/null > ${TOMCAT_HOME}/logs/catalina.out
+	
+	#line_number="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+	# Execute kill -QUIT
+        local java_pid="`pidof $TOMCAT_PROCESS_NAME`"
+        if [[ -n "$java_pid" ]]; then
+
+                kill -3 $java_pid
+                sleep $KILL_QUIT_TIME_WAIT
+        fi
+
+	#new_line_number="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+
+	echo "#####SECTION KILL_QUIT#####" >> $ATTACHE_FILE
+        echo "" >> $ATTACHE_FILE
+	
+	#sed -n "${line_number},${new_line_number}p" ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
+	cat ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
+	
+}
+
+send_Mail ()
+{
+	local short_message="$1"
+
+	if [[ -n "$SERVER_NAME" ]]; then
+		local HOSTNAME_SUBJECT="$SERVER_NAME"
+	else
+		local HOSTNAME_SUBJECT="`hostname | cut -d"." -f 1`"
+	fi
+
+	if [[ ! -e "`which mailx`" ]]; then
+
+		log "ERROR" "Unable to find mailx binary file! No mails will be send! Log file will be used!"
+
+		echo "${HOSTNAME_SUBJECT}: $short_message" >> $LOG_FILE
+		cat $ATTACHE_FILE >> $LOG_FILE
+	else
+
+		log "INFO" "Sending mail notification ($HOSTNAME_SUBJECT): $short_message"
+
+		mailx -s "${HOSTNAME_SUBJECT}: $short_message" $MAIL < $ATTACHE_FILE
+
+	fi
+
+}
+
+send_report ()
+{
+	log "INFO" "Sending report by email to $MAIL"
+	
+	get_info
+	send_Mail "Xinit REPORT"
+}
+
+send_Jabber_Message ()
+{
+
+	local short_message="$1"
+
+	if [[ ! -e "`which sendxmpp`" ]]; then
+
+		log "ERROR" "sendxmpp file was not found! No notifications will be send on jabber!"
+
+	else
+		log "INFO" "Sending jabber message (`hostname`): $short_message"
+		local ips="`/sbin/ifconfig | grep inet | tr -s ' ' | cut -d " " -f1,2,3`"
+		local load="`uptime`"
+		echo -e "${short_message} \n ****IPs**** \n $ips \n ****LOAD**** \n $load" | sendxmpp -r `hostname` $JABBER_USERS
+
+	fi
+
+}
+
+show_report ()
+{
+	log "INFO" "Showing report ..."
+
+	get_info
+
+	if [[ `which less` ]]; then
+
+		less $ATTACHE_FILE
+	
+	elif [[ `which more` ]]; then
+
+		more $ATTACHE_FILE
+
+	else
+
+		cat $ATTACHE_FILE
+	fi
+	
+	echo ""
+	echo " You can anytime use less or more commands to view the last report."
+	echo " Example: less $ATTACHE_FILE"
+	echo
+}
+
+list_parameters ()
+{
+
+	log "INFO" "Listing all available parameters"
+	. ${LIB_DIR}/default.cfg
+	. ${CONF_DIR}/${XWIKI_CONF_FILE}
+
+	local ALL_PARAMS="`cat ${LIB_DIR}/default.cfg | grep -v "^#" | grep -v "^$" | cut -d"=" -f1`"
+	
+	for param in ${ALL_PARAMS}; do
+
+		local param_val="`cat ${CONF_DIR}/${XWIKI_CONF_FILE} | grep -v "#" | grep  "^${param}[ ]\{0,\}=" | cut -d "=" -f 2`"
+		if [[ -n $param_val ]]; then
+
+			echo "$param=`echo $param_val`"
+
+		else
+			local param_val="`cat ${LIB_DIR}/default.cfg | grep -v "#" | grep  "^${param}[ ]\{0,\}=" | cut -d "=" -f 2`"
+			echo "$param=`echo $param_val`"
+
+		fi
+
+	done
+
+}
+
+# This function will be used to print information need for nagios to check
+# XWiki availability. These informations will contain: URL, Users and Passwords.
+nagios_info ()
+{
+	
+if [[ $CHECK_HTTP == *yes*  ]]; then 
+
+	echo "$USE_BASIC_AUTH $CHECK_HTTP_URL $HTACCESS_USERNAME $HTACCESS_PASSWORD $EXPECT_HTTP_RESPONSE_CODE $VERSION"
+	
+else
+
+	echo "HTTP Check is not enabled in xinit!"
+
+fi
+
+}
+
+start_openoffice ()
+{
+	if [[ -x "$OO_DAEMON_PATH" ]] && [[ $OO_SERVER_PORT -gt 1024 ]]; then
+
+		if [[ -z "`netstat -tpln | grep $OO_SERVER_PORT`" ]]; then
+	
+	        	start-stop-daemon -c $TOMCAT_USER -b --start --quiet --oknodo --exec ${OO_DAEMON_PATH} -- -accept="socket,host=127.0.0.1,port=$OO_SERVER_PORT;urp;" -headless -nocrashreport -nodefault -nofirststartwizard -nolockcheck -nologo -norestore
+
+			sleep 2
+
+		        if [[ -n "`netstat -tpln | grep $OO_SERVER_PORT`" ]]; then
+
+                		log "INFO" "OpenOffice successfuly started!"
+
+		        else
+	
+		                log "ERROR" "OpenOffice failed to start!"
+
+		        fi
+
+		else
+
+			log "WARNING" "OpenOffice Daemon is already running!"
+
+		fi
+	else
+
+		log "ERROR" "$OO_DAEMON_PATH not found or Server Port invalid. Server Port must be > 1024!"
+
+        fi
+
+}
+
+stop_openoffice ()
+{	
+	local OO_PID="`pidof soffice.bin`"
+
+	if [[ -n $OO_PID ]]; then
+
+		kill -9 $OO_PID
+		sleep 2
+
+		if [[ -z "`pidof soffice.bin`" ]]; then
+
+			log "INFO" "OpenOffice daemon successfuly stopped!"
+
+		else
+
+			log "ERROR" "Could NOT stop OpenOffice!"
+		fi
+
+	else
+
+		echo "OpenOffice Daemon is not running!"
+	fi
+}
+ 
+
+# check_openoffice: This function checks if openoffice is running and 
+# starting it if not running. Only used for OO_SERVER_TYPE=1
+check_openoffice ()
+{
+	local TEST="$1"
+	
+	if [[ $OO_CHECK -eq 1 ]]; then
+	if [[ $OO_SERVER_TYPE -eq 1 ]]; then
+
+	        echo -n "Checking OpenOffice Server (type: 1) ... "
+		if [[ -n "`netstat -tpln | grep $OO_SERVER_PORT`" ]]; then
+			echo OK
+		else
+			if [[ $TEST -ne 1 ]]; then 
+	                        echo "NOT Running. Starting it"
+				stop_openoffice
+				start_openoffice
+			else
+
+	                        echo "NOT Running."
+
+			fi
+		fi
+		
+	else
+
+		log "WARNING" "OpenOffice inline check works only for OO_SERVER_TYPE=1"
+	fi
+
+	else
+		log "INFO" "OpenOffice Check is not enabled!"
+	fi
+}

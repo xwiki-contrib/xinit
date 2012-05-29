@@ -1,0 +1,116 @@
+#!/bin/bash
+
+check_install ()
+{
+	log "INFO" "Starting a complete installation check"
+    check_xwiki
+    check_apache
+    check_tomcat
+    check_java
+    check_mysql
+}
+
+check_xwiki ()
+{
+
+if [[ ! -h ${XWIKI_HOME} ]]; then
+
+	log "WARNING" "The XWiki directory seems not installed, XWiki should be installed in /usr/local/"
+        
+	elif [[ ! -f ${XWIKI_INIT} ]]; then
+
+		log "WARNING" "Daemon script xwiki.sh is not in place (you should put in /etc/init.d/)"
+
+	if [[ ! -x ${XWIKI_INIT} ]]; then
+        
+		log "WARNING" "The daemon script xwiki.sh is not executable. You must add execute permission for all users!"
+	fi
+	
+	if [ $(ls /etc/rc?.d/*tomcat.sh | egrep 'rc0|rc1|rc2|rc3|rc4|rc5|rc6' | wc -l) = '7' ]; then 
+ 
+		log "WARNING" "Daemon script isn't added to rc.d... It won't be started to system launch."
+	fi
+    
+
+	
+	if [ x"`grep "xwiki.encoding.*=.*UTF-8" ${XWIKI_HOME}/WEB-INF/xinit.cfg`" == x ]; then
+
+		log "WARNING" "xinit.cfg seems not to be configured for UTF-8 encoding. Check it!"
+	fi
+
+	if [[ x"`grep '<property name="connection.useUnicode">true</property>' ${XWIKI_HOME}/WEB-INF/hibernate.cfg.xml`" == x || x"`grep '<property name="connection.characterEncoding">UTF-8</property>' ${XWIKI_HOME}/WEB-INF/hibernate.cfg.xml`" == x ]]; then
+
+		log "WARNING" "Hibernate.cfg.xml seems not to be configured for UTF-8 encoding"
+	fi
+fi
+
+}
+
+check_apache ()
+{
+
+if [[ ! -f /etc/init.d/apache2 ]]; then
+
+                log "INFO" "Apache2 is not installed on the server"
+
+        elif [[  ! -f /etc/apache2/mods-enabled/proxy_ajp.load ]]; then
+
+                log "WARNING" "The AJP proxy module isn't activated on the server"
+
+        if [[ ! -f /etc/apache2/mods-enabled/proxy_http.load ]]; then 
+
+		log "WARNING" "The HTTP proxy module isn't activated on the server"
+	fi
+fi
+}
+
+check_tomcat ()
+{
+
+if [[ ! -L ${TOMCAT_HOME} ]]; then
+
+          log "WARNING" "The Tomcat directory seems not created or $TOMCAT_HOME si not an sym link!"
+	  log "WARNING"	"${TOMCTA_HOME} should be a symlink to Tomcat install directory"
+
+fi
+
+if [  x"`grep 'URIEncoding.*=.*"UTF-8"' ${TOMCAT_HOME}/conf/server.xml`" == x ]; then
+
+          log "WARNING" "Tomcat seems not to be configured for UTF-8 encoding"
+
+fi
+
+
+}
+
+check_java ()
+{
+
+if [[ ! -e ${JAVA_HOME} ]]; then
+
+                log "WARNING" "JAVA isn't installed or isn't in the right place ( ${JAVA_HOME} ). "
+        fi
+
+}
+
+check_mysql ()
+{
+
+if [[ ! -f /etc/init.d/mysql ]]; then
+
+                log "INFO" "MySQL seems not be installed"
+
+        elif [ x"`grep "bind-address.*=.*0.0.0.0" ${MYSQL_HOME}/my.cnf`" == x ];then
+
+                log "INFO" "Mysql may not listen on all interfaces."
+        fi
+
+	if [[ x"`grep "character-set-server.*=.*utf8" ${MYSQL_HOME}/my.cnf`" == x || x"`grep "default-character-set.*=.*utf8" ${MYSQL_HOME}/my.cnf`" == x || x"`grep "collation-server.*=.*utf8_general_ci" ${MYSQL_HOME}/my.cnf`" == x ]];then
+
+		log "WARNING" "Mysql-server seems to be unconfigured for UTF-8. Check ${MYSQL_HOME}/my.cnf and add the utf-8 configuration for client & server"
+
+	fi
+}
+
+
+#
