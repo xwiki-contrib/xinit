@@ -215,7 +215,7 @@ show_help ()
 	echo "		start			Start Tomcat server."
 	echo "		stop			Stop Tomcat server."
 	echo "		restart			Restart Tomcat server."
-	echo "		report			Send report by email. See MAIL parameter in xwiki.cfg"
+	echo "		report			Send report by email. See MAIL parameter in xinit.cfg"
 	echo "		show-report		Print a short report about xwiki/machine status."
 	echo "		list-parameters		Print all available parameters and current configuration."
 	echo "		check-proc		Check Tomcat(java) process."
