@@ -14,6 +14,7 @@ OSX
 You will need to install a `pidof` utility. For example [this one](http://hints.macworld.com/article.php?story=20030618114543169)
 
 Then :
+
     $ sudo mkdir /etc/init.d
     $ sudo ./install.sh --install
 
