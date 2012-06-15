@@ -28,7 +28,7 @@ start_tomcat ()
                         start_openoffice
                 fi
 
-		/bin/su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
+		su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
 
 		# If enabled, make first request
 		if [[ $MAKE_FIRST_REQUEST == yes ]]; then
@@ -51,7 +51,7 @@ stop_tomcat ()
 {
         log "INFO" "Stopping Tomcat ..."
 
-        /bin/su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
+        su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
 
         sleep 8
 
