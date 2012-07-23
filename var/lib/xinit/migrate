@@ -1,5 +1,20 @@
 #!/bin/bash
 
+# usage: $0 <old configuration> <new configuration template> [destination config file]
+
+# TODO:
+# if USE_BASIC_AUTH == "no" && (WGET_HTACCESS_USERNAME != null || WGET_HTACCESS_PASSWORD != null)
+# WGET_HTACCESS_USERNAME --> HTACCESS_USERNAME
+# WGET_HTACCESS_PASSWORD --> HTACCESS_PASSWORD
+
+# TODO:
+# if USE_BASIC_AUTH is yes
+# BASIC_AUTH_USERNAME --> HTACCESS_USERNAME
+# BASIC_AUTH_PASSWORD --> HTACCESS_PASSWORD
+
+# MAKE_FIRST_REQUEST_URL is thrown away
+
+
 getNewKey() {
     case "$1" in
 
@@ -12,8 +27,6 @@ getNewKey() {
         ;;
 
     # Removed entries.
-    # TODO: What happens if BASIC_AUTH_USERNAME/PASSWORD or MAKE_FIRST_REAL_REQUEST are set?
-    # Currently they are eaten.
     "HTTP_LOCAL_HOSTNAME" |\
     "HTTP_LOCAL_PAGE" |\
     "HTTP_LOCAL_PORT" |\
@@ -37,55 +50,60 @@ getValue() {
     RET="`echo $1 | sed -e 's/.*=\(.*\)$/\1/'`"
 }
 
-migrate() {
-    migratedNewConfig=`tempfile`;
-    oldConfig=/etc/xinit/xinit.cfg
-    # TODO: We need a default xinit config to merge the user's old configuration in to.
-    baseNewConfig=./default.cfg.new
-    keysAndValues=`tempfile`
-
-    # Get and convert all common names if they are set.
-    (
-        cat $oldConfig | grep -v '^[\w]*#.*$' | grep -v '^$' | while read line
-        do
-            getKey "$line" && key=$RET
-            getNewKey "$key" && newKey=$RET
-            [ "$newKey" ] || continue;
-            getValue "$line" && value=$RET
-            echo "$newKey=$value"
-        done
-    ) >> $keysAndValues
-
-    # Mail should be converted even if it is commented out.
-    if ! grep '^MAIL=' $keysAndValues; then
-        grep '#MAIL=' $oldConfig >> $keysAndValues
-    fi
-
-    # If CHECK_HTTP_USE_REAL_REQUEST is set to no, migrate the values of
-    # HTTP_LOCAL_HOSTNAME, HTTP_LOCAL_PORT, and HTTP_LOCAL_PAGE to CHECK_HTTP_URL
-    # TODO: Is it possible for HTTP_LOCAL_PORT to not be set?
-    if grep '^CHECK_HTTP_USE_REAL_REQUEST="no"' $oldConfig >>/dev/null 2>>/dev/null; then
-        (
-            cat $oldConfig
-            echo 'echo CHECK_HTTP_URL=\"${HTTP_LOCAL_HOSTNAME}:${HTTP_LOCAL_PORT}/${HTTP_LOCAL_PAGE}\"'
-        ) | bash >> $keysAndValues
-    fi
-
-    # Move configuration over:
-    (
-        cat $baseNewConfig | while read line
-        do
-            # catch lines with '=' in them and strip the equals and what follows.
-            # also remove leading '#' symbols.
-            prefix=`echo $line | sed -ne 's/=.*$//p' | sed 's/^#//'`;
-            if [[ "$prefix" != "" ]]; then
-                cat $keysAndValues | grep "${prefix}=" | tail -1 && continue;
-            fi
-            echo "$line"
-        done
-    ) > $migratedNewConfig
-
-    # TODO: backup?
-    #cp $oldConfig ${oldConfig}-migration-`date +%s`.bak
-    cat $migratedNewConfig > $oldConfig
+usage() {
+    echo "usage: $0 <old configuration file> <new configuration template> [destination config file]"
+    exit 0
 }
+
+[[ "$1" != "" ]] && [[ "$2" != "" ]] || usage
+oldConfig=$1
+baseNewConfig=$2
+[[ "$3" != "" ]] && migratedNewConfig="$3" || migratedNewConfig='/dev/stdout'
+keysAndValues=`tempfile`
+
+# Get and convert all common names if they are set.
+(
+    cat $oldConfig | grep -v '^[\w]*#.*$' | grep -v '^$' | while read line
+    do
+        getKey "$line" && key=$RET
+        getNewKey "$key" && newKey=$RET
+        [ "$newKey" ] || continue;
+        getValue "$line" && value=$RET
+        echo "$newKey=$value"
+    done
+) >> $keysAndValues
+
+# Mail should be converted even if it is commented out.
+if ! grep '^MAIL=' $keysAndValues; then
+    grep '#MAIL=' $oldConfig >> $keysAndValues
+fi
+
+# If CHECK_HTTP_USE_REAL_REQUEST is set to no, migrate the values of
+# HTTP_LOCAL_HOSTNAME, HTTP_LOCAL_PORT, and HTTP_LOCAL_PAGE to CHECK_HTTP_URL
+if grep '^CHECK_HTTP_USE_REAL_REQUEST="no"' $oldConfig >>/dev/null 2>>/dev/null; then
+    (
+        # Set the defaults on case any of the values are still commented.
+        # These were defined in older versions of /var/lib/xinit/default.cfg
+								echo 'HTTP_LOCAL_HOSTNAME="127.0.0.1"'
+								echo 'HTTP_LOCAL_PAGE="xwiki/bin/view/Main/WebHome"'
+								echo 'HTTP_LOCAL_PORT="8080"'
+
+        cat $oldConfig
+        echo 'echo CHECK_HTTP_URL=\"${HTTP_LOCAL_HOSTNAME}:${HTTP_LOCAL_PORT}/${HTTP_LOCAL_PAGE}\"'
+    ) | bash >> $keysAndValues
+fi
+
+# Move configuration over:
+(
+    cat $baseNewConfig | while read line
+    do
+        # catch lines with '=' in them and strip the equals and what follows.
+        # also remove leading '#' symbols.
+        prefix=`echo $line | sed -ne 's/=.*$//p' | sed 's/^#//'`;
+        if [[ "$prefix" != "" ]]; then
+            cat $keysAndValues | (grep "${prefix}=" || echo "$line") | tail -1;
+        else
+            echo "$line"
+        fi
+    done
+) > $migratedNewConfig
