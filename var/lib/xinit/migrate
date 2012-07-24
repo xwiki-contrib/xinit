@@ -2,31 +2,11 @@
 
 # usage: $0 <old configuration> <new configuration template> [destination config file]
 
-# TODO:
-# if USE_BASIC_AUTH == "no" && (WGET_HTACCESS_USERNAME != null || WGET_HTACCESS_PASSWORD != null)
-# WGET_HTACCESS_USERNAME --> HTACCESS_USERNAME
-# WGET_HTACCESS_PASSWORD --> HTACCESS_PASSWORD
-
-# TODO:
-# if USE_BASIC_AUTH is yes
-# BASIC_AUTH_USERNAME --> HTACCESS_USERNAME
-# BASIC_AUTH_PASSWORD --> HTACCESS_PASSWORD
-
-# MAKE_FIRST_REQUEST_URL is thrown away
-
-
 getNewKey() {
     case "$1" in
 
-    "WGET_HTACCESS_USERNAME" )
-        RET="HTACCESS_USERNAME"
-        ;;
-
-    "WGET_HTACCESS_PASSWORD" )
-        RET="HTACCESS_PASSWORD"
-        ;;
-
-    # Removed entries.
+    "WGET_HTACCESS_USERNAME" |\
+    "WGET_HTACCESS_PASSWORD" |\
     "HTTP_LOCAL_HOSTNAME" |\
     "HTTP_LOCAL_PAGE" |\
     "HTTP_LOCAL_PORT" |\
@@ -63,7 +43,7 @@ keysAndValues=`tempfile`
 
 # Get and convert all common names if they are set.
 (
-    cat $oldConfig | grep -v '^[\w]*#.*$' | grep -v '^$' | while read line
+    cat $oldConfig | grep -v '^[ ]*#.*$' | grep -v '^$' | while read line
     do
         getKey "$line" && key=$RET
         getNewKey "$key" && newKey=$RET
@@ -75,7 +55,19 @@ keysAndValues=`tempfile`
 
 # Mail should be converted even if it is commented out.
 if ! grep '^MAIL=' $keysAndValues; then
-    grep '#MAIL=' $oldConfig >> $keysAndValues
+    grep 'MAIL=' $oldConfig | sed 's/#//' >> $keysAndValues
+fi
+
+if grep '^USE_BASIC_AUTH="yes"' $oldConfig; then
+    sed -ne 's/^BASIC_AUTH_USERNAME=/HTACCESS_USERNAME=/p' $oldConfig >> $keysAndValues
+    sed -ne 's/^BASIC_AUTH_PASSWORD=/HTACCESS_PASSWORD=/p' $oldConfig >> $keysAndValues
+else if grep '^WGET_HTACCESS_\(USERNAME\|PASSWORD\)=' $oldConfig >>/dev/null 2>>/dev/null; then
+    sed -ne 's/^GET_HTACCESS_USERNAME=/HTACCESS_USERNAME=/p' $oldConfig >> $keysAndValues
+    sed -ne 's/^GET_HTACCESS_PASSWORD=/HTACCESS_PASSWORD=/p' $oldConfig >> $keysAndValues
+fi
+
+if ! grep '^MAIL=' $keysAndValues; then
+    grep 'MAIL=' $oldConfig | sed 's/#//' >> $keysAndValues
 fi
 
 # If CHECK_HTTP_USE_REAL_REQUEST is set to no, migrate the values of
@@ -84,9 +76,9 @@ if grep '^CHECK_HTTP_USE_REAL_REQUEST="no"' $oldConfig >>/dev/null 2>>/dev/null;
     (
         # Set the defaults on case any of the values are still commented.
         # These were defined in older versions of /var/lib/xinit/default.cfg
-								echo 'HTTP_LOCAL_HOSTNAME="127.0.0.1"'
-								echo 'HTTP_LOCAL_PAGE="xwiki/bin/view/Main/WebHome"'
-								echo 'HTTP_LOCAL_PORT="8080"'
+        echo 'HTTP_LOCAL_HOSTNAME="127.0.0.1"'
+        echo 'HTTP_LOCAL_PAGE="xwiki/bin/view/Main/WebHome"'
+        echo 'HTTP_LOCAL_PORT="8080"'
 
         cat $oldConfig
         echo 'echo CHECK_HTTP_URL=\"${HTTP_LOCAL_HOSTNAME}:${HTTP_LOCAL_PORT}/${HTTP_LOCAL_PAGE}\"'
@@ -101,9 +93,11 @@ fi
         # also remove leading '#' symbols.
         prefix=`echo $line | sed -ne 's/=.*$//p' | sed 's/^#//'`;
         if [[ "$prefix" != "" ]]; then
-            cat $keysAndValues | (grep "${prefix}=" || echo "$line") | tail -1;
+            cat $keysAndValues | (grep "^${prefix}=" || echo "$line") | tail -1;
         else
             echo "$line"
         fi
     done
 ) > $migratedNewConfig
+
+rm -f -- "$keysAndValues"
