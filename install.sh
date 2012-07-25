@@ -7,8 +7,14 @@
 #				#
 #################################
 
+# load the function file
+. var/lib/xinit/functions
+
+
 xinit_update ()
 {
+# check the dependencies
+check_dependencies;
 	if [[ -e /var/lib/xinit/vars ]]; then	
 
 		installed_xinit_version="`grep VERSION /var/lib/xinit/vars | cut -d = -f 2`"
@@ -39,6 +45,8 @@ xinit_update ()
 
 xinit_install ()
 {
+# check dependencies
+check_dependencies;
 
 if [[ ! -e var/lib/xinit/vars ]]; then
 	
