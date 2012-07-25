@@ -103,6 +103,13 @@ else
 fi
 }
 
+migrate() 
+{
+	OLD_CONFIGURATION_FILE='/etc/xinit/xinit.cfg';
+	DEFAULT_NEW_CONFIGURATION_FILE='var/lib/xinit/default.cfg';
+	NEW_CONFIGURATION_FILE=$OLD_CONFIGURATION_FILE
+	. var/lib/xinit/migrate $OLD_CONFIGURATION_FILE $DEFAULT_NEW_CONFIGURATION_FILE $NEW_CONFIGURATION_FILE
+}
 
 case $1 in
         --install)
@@ -111,9 +118,12 @@ case $1 in
         --update)
                         xinit_update
                         ;;
+	--migrate)
+			migrate
+			;;
         *)
                 echo ""
-                echo " usage: ./install.sh [ --install | --update ]"
+                echo " usage: ./install.sh [ --install | --update | --migrate]"
                 echo
                 exit 1
 
