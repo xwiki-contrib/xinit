@@ -66,7 +66,7 @@ elif grep '^WGET_HTACCESS_\(USERNAME\|PASSWORD\)=' $oldConfig >>/dev/null 2>>/de
     sed -ne 's/^GET_HTACCESS_PASSWORD=/HTACCESS_PASSWORD=/p' $oldConfig >> $keysAndValues
 fi
 
-if ! grep '^MAIL=' $keysAndValues; then
+if ! grep '^MAIL=' $keysAndValues >>/dev/null 2>>/dev/null; then
     grep 'MAIL=' $oldConfig | sed 's/#//' >> $keysAndValues
 fi
 
