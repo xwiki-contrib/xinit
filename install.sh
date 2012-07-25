@@ -7,8 +7,14 @@
 #				#
 #################################
 
+# load the function file
+. var/lib/xinit/functions
+
+
 xinit_update ()
 {
+# check the dependencies
+check_dependencies;
 	if [[ -e /var/lib/xinit/vars ]]; then	
 
 		installed_xinit_version="`grep VERSION /var/lib/xinit/vars | cut -d = -f 2`"
@@ -39,6 +45,8 @@ xinit_update ()
 
 xinit_install ()
 {
+# check dependencies
+check_dependencies;
 
 if [[ ! -e var/lib/xinit/vars ]]; then
 	
@@ -103,6 +111,13 @@ else
 fi
 }
 
+migrate() 
+{
+	OLD_CONFIGURATION_FILE='/etc/xinit/xinit.cfg';
+	DEFAULT_NEW_CONFIGURATION_FILE='var/lib/xinit/default.cfg';
+	NEW_CONFIGURATION_FILE=$OLD_CONFIGURATION_FILE
+	. var/lib/xinit/migrate $OLD_CONFIGURATION_FILE $DEFAULT_NEW_CONFIGURATION_FILE $NEW_CONFIGURATION_FILE
+}
 
 case $1 in
         --install)
@@ -111,9 +126,12 @@ case $1 in
         --update)
                         xinit_update
                         ;;
+	--migrate)
+			migrate
+			;;
         *)
                 echo ""
-                echo " usage: ./install.sh [ --install | --update ]"
+                echo " usage: ./install.sh [ --install | --update | --migrate]"
                 echo
                 exit 1
 
