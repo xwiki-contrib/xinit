@@ -36,8 +36,8 @@ usage() {
 }
 
 [[ "$1" != "" ]] && [[ "$2" != "" ]] || usage
-oldConfig=$1
-baseNewConfig=$2
+oldConfig="$1"
+baseNewConfig="$2"
 [[ "$3" != "" ]] && migratedNewConfig="$3" || migratedNewConfig='/dev/stdout'
 keysAndValues=`tempfile`
 
@@ -61,7 +61,7 @@ fi
 if grep '^USE_BASIC_AUTH="yes"' $oldConfig; then
     sed -ne 's/^BASIC_AUTH_USERNAME=/HTACCESS_USERNAME=/p' $oldConfig >> $keysAndValues
     sed -ne 's/^BASIC_AUTH_PASSWORD=/HTACCESS_PASSWORD=/p' $oldConfig >> $keysAndValues
-else if grep '^WGET_HTACCESS_\(USERNAME\|PASSWORD\)=' $oldConfig >>/dev/null 2>>/dev/null; then
+elif grep '^WGET_HTACCESS_\(USERNAME\|PASSWORD\)=' $oldConfig >>/dev/null 2>>/dev/null; then
     sed -ne 's/^GET_HTACCESS_USERNAME=/HTACCESS_USERNAME=/p' $oldConfig >> $keysAndValues
     sed -ne 's/^GET_HTACCESS_PASSWORD=/HTACCESS_PASSWORD=/p' $oldConfig >> $keysAndValues
 fi
@@ -92,10 +92,11 @@ fi
         # catch lines with '=' in them and strip the equals and what follows.
         # also remove leading '#' symbols.
         prefix=`echo $line | sed -ne 's/=.*$//p' | sed 's/^#//'`;
+        commentedLine=`echo $line | sed 's/^\([^#]\)/#\1/'`
         if [[ "$prefix" != "" ]]; then
-            cat $keysAndValues | (grep "^${prefix}=" || echo "$line") | tail -1;
+            cat $keysAndValues | (grep "^${prefix}=" || echo "$commentedLine") | tail -1;
         else
-            echo "$line"
+            echo "$commentedLine"
         fi
     done
 ) > $migratedNewConfig
