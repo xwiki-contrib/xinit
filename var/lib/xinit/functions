@@ -643,7 +643,7 @@ check_dependencies ()
 	BOLD=$(tput bold)
 
 	for COMMAND in ${DEPEND_COMMANDS[@]}; do
-		echo "Checking ${COMMAND} command ... "
+		echo -n "${RST}Checking ${COMMAND} command ... "
 		if command_exists ${COMMAND} ; then
 			echo "${BOLD}${GREEN}[OK]${RST}";
 		else
