@@ -627,3 +627,28 @@ check_openoffice ()
 		log "INFO" "OpenOffice Check is not enabled!"
 	fi
 }
+
+# checks if a command exists
+command_exists () {
+    type "$1" &> /dev/null ;
+}
+
+# checks if the required command to migrate the old configuration file to the new one are present 
+check_dependencies () 
+{
+	RED=$(tput setaf 1) # Red
+	GREEN=$(tput setaf 2) # Green
+	RST=$(tput sgr0) # Reset
+	BOLD=$(tput bold)
+
+	declare -a COMMANDS_TO_CHECK_FOR=('sed' 'awk' 'curl' 'wget' 'cut' 'grep' );
+	for COMMAND in ${COMMANDS_TO_CHECK_FOR[@]}; do
+		if command_exists ${COMMAND};then
+			echo "${COMMAND}$RST is installed $BOLD$GREEN [OK]$RST";
+		else
+			echo "${COMMAND}$RST is NOT installed $BOLD$RED [ERROR]$RST";
+			echo "Please install ${COMMAND} first and then rerun the checks";
+			exit 17;
+		fi
+	done
+}
