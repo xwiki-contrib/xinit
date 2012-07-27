@@ -15,8 +15,15 @@ exit 12
 
 fi
 
-. var/lib/xinit/functions
+if [[ ! -e var/lib/xinit/vars ]]; then
 
+echo "Error: I can't find var/lib/xinit/vars file."
+exit 15
+
+fi
+
+. var/lib/xinit/functions
+. var/lib/xinit/vars
 
 xinit_update ()
 {
