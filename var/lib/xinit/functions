@@ -225,6 +225,7 @@ show_help ()
 	echo "		test-proc		Just test if check-proc works. No notifications or restart will be performed."
 	echo "		test-openoffice		Just test if OpenOffice Daemon is running or not. No actions are taken."		
 	echo "		check-install		Check XWiki installation (based on standard installation)."
+	echo "		check-dep		Check all the dependencies commands Xinit needs to run."
 	echo "		nagios-info		Informations needed for Nagios to check XWiki availability will be printed."
 	echo "		version			Print Xinit and XWiki version."
 	echo
@@ -641,13 +642,13 @@ check_dependencies ()
 	RST=$(tput sgr0) # Reset
 	BOLD=$(tput bold)
 
-	declare -a COMMANDS_TO_CHECK_FOR=('sed' 'awk' 'curl' 'wget' 'cut' 'grep' );
-	for COMMAND in ${COMMANDS_TO_CHECK_FOR[@]}; do
-		if command_exists ${COMMAND};then
-			echo "${COMMAND}$RST is installed $BOLD$GREEN [OK]$RST";
+	for COMMAND in ${DEPEND_COMMANDS[@]}; do
+		echo "Checking ${COMMAND} command ... "
+		if command_exists ${COMMAND} ; then
+			echo "${BOLD}${GREEN}[OK]${RST}";
 		else
-			echo "${COMMAND}$RST is NOT installed $BOLD$RED [ERROR]$RST";
-			echo "Please install ${COMMAND} first and then rerun the checks";
+			echo "${BOLD}${RED}[NOT FOUND]${RST}";
+			echo "Please install ${COMMAND} command.";
 			exit 17;
 		fi
 	done

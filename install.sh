@@ -8,13 +8,19 @@
 #################################
 
 # load the function file
+if [[ ! -e var/lib/xinit/functions ]]; then
+
+echo "Error: I can't find var/lib/xinit/functions file."
+exit 12
+
+fi
+
 . var/lib/xinit/functions
 
 
 xinit_update ()
 {
-# check the dependencies
-check_dependencies;
+
 	if [[ -e /var/lib/xinit/vars ]]; then	
 
 		installed_xinit_version="`grep VERSION /var/lib/xinit/vars | cut -d = -f 2`"
@@ -45,6 +51,7 @@ check_dependencies;
 
 xinit_install ()
 {
+
 # check dependencies
 check_dependencies;
 
@@ -111,12 +118,26 @@ else
 fi
 }
 
+# Function used to migrate xinit conf (vers <= 0.0.17 ) to version >= 1.0
 migrate() 
 {
 	OLD_CONFIGURATION_FILE='/etc/xinit/xinit.cfg';
+	NEW_CONFIGURATION_FILE='/etc/xinit/xinit.cfg.new'
 	DEFAULT_NEW_CONFIGURATION_FILE='var/lib/xinit/default.cfg';
-	NEW_CONFIGURATION_FILE=$OLD_CONFIGURATION_FILE
-	. var/lib/xinit/migrate $OLD_CONFIGURATION_FILE $DEFAULT_NEW_CONFIGURATION_FILE $NEW_CONFIGURATION_FILE
+
+	if [[ ! -e $OLD_CONFIGURATION_FILE ]]; then
+
+		echo "Error: I was not able to find old conf file $OLD_CONFIGURATION_FILE"
+		exit 13
+	fi
+
+	if [[ ! -e $DEFAULT_NEW_CONFIGURATION_FILE ]]; then
+
+                echo "Error: I was not able to find the default new file $DEFAULT_NEW_CONFIGURATION_FILE"
+                exit 14
+        fi
+
+	./var/lib/xinit/migrate $OLD_CONFIGURATION_FILE $DEFAULT_NEW_CONFIGURATION_FILE $NEW_CONFIGURATION_FILE
 }
 
 case $1 in
@@ -131,7 +152,7 @@ case $1 in
 			;;
         *)
                 echo ""
-                echo " usage: ./install.sh [ --install | --update | --migrate]"
+                echo " usage: ./install.sh [ --install | --update | --migrate ]"
                 echo
                 exit 1
 

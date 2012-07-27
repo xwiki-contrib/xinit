@@ -1,5 +1,4 @@
 
-
 LIB_DIR="/var/lib/xinit"
 LIBS_FILE="functions default.cfg check-xwiki-install"
 FUNCTIONS_FILE="/var/lib/xinit/functions"
@@ -12,5 +11,5 @@ REQUEST_ERROR_OUTPUT="/var/tmp/xinit_http_output"
 XWIKI_HOME="/usr/local/xwiki"
 XWIKI_INIT="/etc/init.d/xwiki.sh"
 MYSQL_HOME="/etc/mysql/"
-COMMANDS_TO_CHECK_FOR=('sed' 'awk' 'curl' 'wget' 'cut' 'grep' )
-VERSION=1.0
+DEPEND_COMMANDS=('sed' 'awk' 'curl' 'cut' 'grep' 'cat' 'pidof' 'ps' 'date' 'hostname' 'netstat' 'tr' 'uniq' 'sort' 'egrep' 'mysql' 'du' 'top' 'kill' 'wc' 'mailx' 'ifconfig' 'uptime' 'sleep' 'tput')
+VERSION=1.1

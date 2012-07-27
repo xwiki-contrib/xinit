@@ -26,6 +26,12 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 Change Log
 ==========
 
+### Xinit Version 1.1 - 27/07/2012 ###
+
+* a new functionality has been added to Xinit to migrate the old configuration (Xinit version <= 0.0.17) to the new version (Xinit >= 1.0)
+* a new files has been added var/lib/xinit/migrate
+* a new function to check dependencies has also been added. Dependencies can be checked using xwiki.sh --check-dep
+
 ### Xinit Version 1.0 - 28/05/2012 ###
 
 * A new major version released

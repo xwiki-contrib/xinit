@@ -119,6 +119,9 @@ case "$1" in
 	check-install)
 		check_install
 		;;
+	check-dep)
+		check_dependencies
+		;;
 	nagios-info)
 		nagios_info
 		;;
