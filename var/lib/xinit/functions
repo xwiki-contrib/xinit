@@ -5,7 +5,7 @@ start_tomcat ()
 {
 	log "INFO" "Starting Tomcat Server ..."
 	
-	if [[ -z "`pidof ${TOMCAT_PROCESS_NAME}`" ]]; then
+	if [[ -z "`ps auxwww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`" ]]; then
 
 		if [[ -e "$CATALINA_PID" ]]; then
 
@@ -60,7 +60,7 @@ stop_tomcat ()
                 TOMCAT_PID="`cat $CATALINA_PID`"
         else
 
-                TOMCAT_PID="`pidof ${TOMCAT_PROCESS_NAME}`"
+                TOMCAT_PID="`ps auxwww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`"
         fi
 
         if [[ -n "$TOMCAT_PID" ]]; then
