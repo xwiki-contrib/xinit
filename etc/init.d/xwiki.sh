@@ -66,7 +66,9 @@ else
 
 fi
 
-export TOMCAT_HOME JAVA_HOME CATALINA_OPTS TOMCAT_USER LANG CATALINA_PID
+eval $CONTAINER_PID_NAME="\$CONTAINER_PID"
+eval $CONTAINER_OPTS_NAME="\$CONTAINER_OPTS \$JVM_DEBUG_OPTS"
+export CONTAINER_HOME JAVA_HOME CONTAINER_OPTS CONTAINER_USER LANG CONTAINER_PID $CONTAINER_PID_NAME $CONTAINER_OPTS_NAME
 
 if [[ -z "$1" ]]; then
 
@@ -78,13 +80,13 @@ fi
 #while [[ -n "$1" ]]; do
 case "$1" in 
 	start)
-		start_tomcat
+		start_container
 		;;
 	stop)
-		stop_tomcat
+		stop_container
 		;;
 	restart)
-		restart_tomcat
+		restart_container
 		;;
 	report) 
 		send_report

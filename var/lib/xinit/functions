@@ -1,21 +1,20 @@
 #!/bin/bash
 
 
-start_tomcat ()
+start_container ()
 {
-	log "INFO" "Starting Tomcat Server ..."
+	log "INFO" "Starting ${NAME} Server ..."
 	
-	if [[ -z "`ps auxww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`" ]]; then
+	if [[ -z "`ps auxww | grep ${CONTAINER_PROCESS_NAME} | grep ${CONTAINER_HOME} | awk '{print $2}'`" ]]; then
 
-		if [[ -e "$CATALINA_PID" ]]; then
+		if [[ -e "$CONTAINER_PID" ]]; then
 
-			log "INFO" "Found catalina.pid file, removing it ... "
-			rm -f "$CATALINA_PID"
+			log "INFO" "Found pid file, removing it ... "
+			rm -f "$CONTAINER_PID"
 		fi
 		if [[ $JVM_DEBUG == yes ]]; then
 			
 			log "INFO" "Debug mode activated!"
-			CATALINA_OPTS="$CATALINA_OPTS $JVM_DEBUG_OPTS"
 		fi
 
 		# Stop OO Server if it is running (OO_SERVER_TYPE=0)
@@ -28,7 +27,7 @@ start_tomcat ()
                         start_openoffice
                 fi
 
-		su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
+		su $CONTAINER_USER -- $CONTAINER_HOME/$CONTAINER_START_EXECUTABLE $CONTAINER_START_ARG
 
 		# If enabled, make first request
 		if [[ $MAKE_FIRST_REQUEST == yes ]]; then
@@ -42,41 +41,41 @@ start_tomcat ()
 
 	else
 
-		log "WARNING" "Java process found! Stop tomcat first!"
+		log "WARNING" "Java process found! Stop container first!"
 	fi
 
 }
 
-stop_tomcat ()
+stop_container ()
 {
-        log "INFO" "Stopping Tomcat ..."
+        log "INFO" "Stopping ${NAME} ..."
 
-        su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
+        su $CONTAINER_USER -- $CONTAINER_HOME/$CONTAINER_STOP_EXECUTABLE $CONTAINER_STOP_ARG
 
         sleep 8
 
-        if [[ -s $CATALINA_PID ]]; then
+        if [[ -s $CONTAINER_PID ]]; then
 
-                TOMCAT_PID="`cat $CATALINA_PID`"
+                CONTAINER_PID="`cat $CONTAINER_PID`"
         else
 
-                TOMCAT_PID="`ps auxww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`"
+                CONTAINER_PID="`ps auxww | grep ${CONTAINER_PROCESS_NAME} | grep ${CONTAINER_HOME} | awk '{print $2}'`"
         fi
 
-        if [[ -n "$TOMCAT_PID" ]]; then
+        if [[ -n "$CONTAINER_PID" ]]; then
 
                 log "WARNING" "Java process still running. Killing it ..."
-		if [[ -n "`ps -eo pid | grep $TOMCAT_PID`" ]]; then
+		            if [[ -n "`ps -eo pid | grep $CONTAINER_PID`" ]]; then
 
-	                kill -9 $TOMCAT_PID
+	                kill -9 $CONTAINER_PID
 			sleep 2
 
 		fi
 
-                if [[ -e $CATALINA_PID ]]; then
+                if [[ -e $CONTAINER_PID ]]; then
 
                         log "WARNING" "Pid file exists. Removing it ..."
-                        rm -f $CATALINA_PID
+                        rm -f $CONTAINER_PID
                 fi
         fi
 
@@ -87,12 +86,12 @@ stop_tomcat ()
 
 }
 
-restart_tomcat ()
+restart_container ()
 {
 
-	log "INFO" "Restarting Tomcat ..."
-	stop_tomcat
-	start_tomcat
+	log "INFO" "Restarting ${NAME} ..."
+	stop_container
+	start_container
 
 }
 
@@ -107,40 +106,40 @@ check_proc ()
 	fi
 	
 	# If pid file doesn't exists...
-	if [[ ! -e $CATALINA_PID ]]; then
+	if [[ ! -e $CONTAINER_PID ]]; then
 
 		echo "FAILED"
-		log "CRITICAL" "Catalina pid file not found!"
+		log "CRITICAL" "Container pid file not found!"
 		if [[ "$1" -ne 1 ]]; then
-			send_Notification "Catalina pid file not found!"
-			restart_tomcat
+			send_Notification "Container pid file not found!"
+			restart_container
 		fi
 		
 	fi
 
 	# If pid file exists but is empty
-	if [[ ! -s $CATALINA_PID ]]; then
+	if [[ ! -s $CONTAINER_PID ]]; then
 	
 		echo "FAILED"
 		log "CRITICAL" "Void pid!"
 		if [[ "$1" -ne 1 ]]; then
 			send_Notification "Void pid!"
-			restart_tomcat
+			restart_container
 		fi
 
 	fi
 
 	# If pid file exists but the pid listed in this file doesn't exists
-	if [[ -s $CATALINA_PID ]]; then
+	if [[ -s $CONTAINER_PID ]]; then
 
-		pid="`cat $CATALINA_PID`"
+		pid="`cat $CONTAINER_PID`"
 		if [[ -z "`ps --pid=$pid -o comm=`" ]]; then
 			
 			echo "FAILED"
 			log "CRITICAL" "Java process died"
 			if [[ "$1" -ne 1 ]]; then
 				send_Notification "Java process died"
-				restart_tomcat
+				restart_container
 			fi
 
 		fi
@@ -212,13 +211,13 @@ show_help ()
 	echo
 	echo "	OPTIONS:"
 	echo
-	echo "		start			Start Tomcat server."
-	echo "		stop			Stop Tomcat server."
-	echo "		restart			Restart Tomcat server."
+	echo "		start			Start ${NAME} server."
+	echo "		stop			Stop ${NAME} server."
+	echo "		restart			Restart ${NAME} server."
 	echo "		report			Send report by email. See MAIL parameter in xinit.cfg"
 	echo "		show-report		Print a short report about xwiki/machine status."
 	echo "		list-parameters		Print all available parameters and current configuration."
-	echo "		check-proc		Check Tomcat(java) process."
+	echo "		check-proc		Check ${NAME} (java) process."
 	echo "		check-http		Check if the wiki is responding or not."
 	echo "		check-openoffice	Check if OO Daemon is running and restart it if necessary. Only used for OO_SERVER_TYPE=1"
 	echo "		test-http		Just test if check-http works. No notifications or restart will be performed."
@@ -388,31 +387,31 @@ get_info ()
 
 	echo "" >> $ATTACHE_FILE
 
-	echo "#####SECTION TOMCAT_LOGS#####" >> $ATTACHE_FILE
+	echo "#####SECTION CONTAINER_LOGS#####" >> $ATTACHE_FILE
         echo "" >> $ATTACHE_FILE
 
-	tail -n $LOG_LINE_NUMBER ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
+	tail -n $LOG_LINE_NUMBER ${CONTAINER_HOME}/${CONTAINER_LOGS} >> $ATTACHE_FILE
 	echo "" >> $ATTACHE_FILE
 
 	
-	cat /dev/null > ${TOMCAT_HOME}/logs/catalina.out
+	cat /dev/null > ${CONTAINER_HOME}/${CONTAINER_LOGS}
 	
-	#line_number="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+	#line_number="`wc -l ${CONTAINER_HOME}/${CONTAINER_LOGS} | awk '{print $1}'`"
 	# Execute kill -QUIT
-        local java_pid="`pidof $TOMCAT_PROCESS_NAME`"
+        local java_pid="`pidof $CONTAINER_PROCESS_NAME`"
         if [[ -n "$java_pid" ]]; then
 
                 kill -3 $java_pid
                 sleep $KILL_QUIT_TIME_WAIT
         fi
 
-	#new_line_number="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+	#new_line_number="`wc -l ${CONTAINER_HOME}/${CONTAINER_LOGS} | awk '{print $1}'`"
 
 	echo "#####SECTION KILL_QUIT#####" >> $ATTACHE_FILE
         echo "" >> $ATTACHE_FILE
 	
-	#sed -n "${line_number},${new_line_number}p" ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
-	cat ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
+	#sed -n "${line_number},${new_line_number}p" ${CONTAINER_HOME}${CONTAINER_LOGS}>> $ATTACHE_FILE
+	cat ${CONTAINER_HOME}/${CONTAINER_LOGS} >> $ATTACHE_FILE
 	
 }
 
@@ -543,7 +542,7 @@ start_openoffice ()
 
 		if [[ -z "`netstat -tpln | grep $OO_SERVER_PORT`" ]]; then
 	
-	        	start-stop-daemon -c $TOMCAT_USER -b --start --quiet --oknodo --exec ${OO_DAEMON_PATH} -- -accept="socket,host=127.0.0.1,port=$OO_SERVER_PORT;urp;" -headless -nocrashreport -nodefault -nofirststartwizard -nolockcheck -nologo -norestore
+	        	start-stop-daemon -c $CONTAINER_USER -b --start --quiet --oknodo --exec ${OO_DAEMON_PATH} -- -accept="socket,host=127.0.0.1,port=$OO_SERVER_PORT;urp;" -headless -nocrashreport -nodefault -nofirststartwizard -nolockcheck -nologo -norestore
 
 			sleep 2
 
