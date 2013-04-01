@@ -325,6 +325,10 @@ get_info ()
 
 	done
 
+	echo "#####SECTION CONNECTION_APACHE_STATUS#####" >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+	curl http://127.0.0.1/server-status | sed -n '/^$/!{s/<[^>]*>/ /g;p;}' >> $ATTACHE_FILE
+
 	echo "#####SECTION DISK_USAGE#####" >> $ATTACHE_FILE
         echo "" >> $ATTACHE_FILE
 	
