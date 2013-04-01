@@ -171,12 +171,12 @@ check_http ()
 
 	if [[ $USE_BASIC_AUTH == yes ]]; then
 
-		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure -u ${HTACCESS_USERNAME}:${HTACCESS_PASSWORD} --connect-timeout ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
+		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure -u ${HTACCESS_USERNAME}:${HTACCESS_PASSWORD} --max-time ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
 		EXIT_CODE="$?"
 
 	elif [[ $USE_BASIC_AUTH == no ]]; then
 
-		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure --connect-timeout ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
+		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure --max-time ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
 		EXIT_CODE="$?"
 	fi
 
