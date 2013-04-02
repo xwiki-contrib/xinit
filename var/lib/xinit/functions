@@ -190,7 +190,7 @@ check_http ()
 	fi
 	
 	# Check response code 
-	if [[ ${EXPECT_HTTP_RESPONSE_CODE} -ne ${RESPONSE_CODE} ]]; then
+	if [[ ${EXPECT_HTTP_RESPONSE_CODE} != *${RESPONSE_CODE}* ]]; then
 		
 		# If test-http
 		if [[ $1 -ne 1 ]]; then
