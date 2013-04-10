@@ -505,16 +505,7 @@ list_parameters ()
 	
 	for param in ${ALL_PARAMS}; do
 
-		local param_val="`cat ${CONF_DIR}/${XWIKI_CONF_FILE} | grep -v "#" | grep  "^${param}[ ]\{0,\}=" | cut -d "=" -f 2`"
-		if [[ -n $param_val ]]; then
-
-			echo "$param=`echo $param_val`"
-
-		else
-			local param_val="`cat ${LIB_DIR}/default.cfg | grep -v "#" | grep  "^${param}[ ]\{0,\}=" | cut -d "=" -f 2`"
-			echo "$param=`echo $param_val`"
-
-		fi
+		echo ${param}=${!param}
 
 	done
 
