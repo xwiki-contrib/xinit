@@ -54,11 +54,11 @@ keysAndValues=`tempfile`
 ) >> $keysAndValues
 
 # Mail should be converted even if it is commented out.
-if ! grep '^MAIL=' $keysAndValues; then
+if ! grep '^MAIL=' $keysAndValues >>/dev/null 2>>/dev/null; then
     grep 'MAIL=' $oldConfig | sed 's/#//' >> $keysAndValues
 fi
 
-if grep '^USE_BASIC_AUTH="yes"' $oldConfig; then
+if grep '^USE_BASIC_AUTH="yes"' $oldConfig >>/dev/null 2>>/dev/null; then
     sed -ne 's/^BASIC_AUTH_USERNAME=/HTACCESS_USERNAME=/p' $oldConfig >> $keysAndValues
     sed -ne 's/^BASIC_AUTH_PASSWORD=/HTACCESS_PASSWORD=/p' $oldConfig >> $keysAndValues
 elif grep '^WGET_HTACCESS_\(USERNAME\|PASSWORD\)=' $oldConfig >>/dev/null 2>>/dev/null; then

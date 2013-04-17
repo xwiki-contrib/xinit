@@ -171,12 +171,12 @@ check_http ()
 
 	if [[ $USE_BASIC_AUTH == yes ]]; then
 
-		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure -u ${HTACCESS_USERNAME}:${HTACCESS_PASSWORD} --connect-timeout ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
+		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure -u ${HTACCESS_USERNAME}:${HTACCESS_PASSWORD} --max-time ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
 		EXIT_CODE="$?"
 
 	elif [[ $USE_BASIC_AUTH == no ]]; then
 
-		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure --connect-timeout ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
+		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure --max-time ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
 		EXIT_CODE="$?"
 	fi
 
@@ -189,8 +189,15 @@ check_http ()
 		fi
 	fi
 	
-	# Check response code 
-	if [[ ${EXPECT_HTTP_RESPONSE_CODE} -ne ${RESPONSE_CODE} ]]; then
+	# Check response code
+	RESPONSE_CODE_MATCH=0
+	for TEST_RESPONSE_CODE in `echo ${EXPECT_HTTP_RESPONSE_CODE}| tr ',' '\n'`
+	do
+		if [[ ${TEST_RESPONSE_CODE} -eq ${RESPONSE_CODE} ]]; then
+			RESPONSE_CODE_MATCH=1
+		fi
+	done
+	if [[ ${RESPONSE_CODE_MATCH} -ne 1 ]]; then
 		
 		# If test-http
 		if [[ $1 -ne 1 ]]; then
@@ -324,6 +331,10 @@ get_info ()
 		echo "" >> $ATTACHE_FILE
 
 	done
+
+	echo "#####SECTION CONNECTION_APACHE_STATUS#####" >> $ATTACHE_FILE
+	echo "" >> $ATTACHE_FILE
+	curl http://127.0.0.1/server-status | sed -n '/^$/!{s/<[^>]*>/ /g;p;}' >> $ATTACHE_FILE
 
 	echo "#####SECTION DISK_USAGE#####" >> $ATTACHE_FILE
         echo "" >> $ATTACHE_FILE
