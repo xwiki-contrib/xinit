@@ -189,8 +189,15 @@ check_http ()
 		fi
 	fi
 	
-	# Check response code 
-	if [[ ${EXPECT_HTTP_RESPONSE_CODE} != *${RESPONSE_CODE}* ]]; then
+	# Check response code
+	RESPONSE_CODE_MATCH=0
+	for TEST_RESPONSE_CODE in `echo ${EXPECT_HTTP_RESPONSE_CODE}| tr ',' '\n'`
+	do
+		if [[ ${TEST_RESPONSE_CODE} -eq ${RESPONSE_CODE} ]]; then
+			RESPONSE_CODE_MATCH=1
+		fi
+	done
+	if [[ ${RESPONSE_CODE_MATCH} -ne 1 ]]; then
 		
 		# If test-http
 		if [[ $1 -ne 1 ]]; then
