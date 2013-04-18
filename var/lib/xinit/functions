@@ -53,7 +53,7 @@ stop_tomcat ()
 
         su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
 
-        sleep 8
+        sleep 3
 
         if [[ -s $CATALINA_PID ]]; then
 
@@ -405,25 +405,25 @@ get_info ()
 	tail -n $LOG_LINE_NUMBER ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
 	echo "" >> $ATTACHE_FILE
 
-	
-	cat /dev/null > ${TOMCAT_HOME}/logs/catalina.out
-	
-	#line_number="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+	echo "#####SECTION KILL_QUIT#####" >> $ATTACHE_FILE
+
+        echo "" >> $ATTACHE_FILE
+
+# 	We don't want to clean the log file in any way	
+#	cat /dev/null > ${TOMCAT_HOME}/logs/catalina.out
+
+	PREKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+
 	# Execute kill -QUIT
         local java_pid="`pidof $TOMCAT_PROCESS_NAME`"
-        if [[ -n "$java_pid" ]]; then
+        kill -3 $java_pid
+        sleep $KILL_QUIT_TIME_WAIT
 
-                kill -3 $java_pid
-                sleep $KILL_QUIT_TIME_WAIT
-        fi
+	POSTKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+	# Calculating the thread dump size.
+	KILLQUIT_LOG_LINES="$((${POSTKILL_LOG_NUMBER} - ${PREKILL_LOG_NUMBER}))"
 
-	#new_line_number="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
-
-	echo "#####SECTION KILL_QUIT#####" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
-	
-	#sed -n "${line_number},${new_line_number}p" ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
-	cat ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
+	tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
 	
 }
 
