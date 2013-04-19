@@ -401,6 +401,20 @@ get_info ()
 
 	echo "" >> $ATTACHE_FILE
 
+#	Provide a DNS trace if the DIG command exists
+	if [[ $EXIT_CODE -eq 6 ]]; then
+		if [[ $USE_DNS == yes ]]; then
+			DIG=`which dig`
+			if [[ $? -eq 0 ]]; then
+				echo "#####SECTION DNS_TRACE#####" >> $ATTACHE_FILE
+				echo "" >> $ATTACHE_FILE
+				DOMAIN=`echo ${CHECK_HTTP_URL} | sed -r -e 's/https?:\/\/([^\/]+).*/\1/'`
+				$DIG +trace $DOMAIN >> $ATTACHE_FILE
+				echo "" >> $ATTACHE_FILE
+			fi
+		fi
+	fi
+
 	echo "#####SECTION TOMCAT_LOGS#####" >> $ATTACHE_FILE
         echo "" >> $ATTACHE_FILE
 
