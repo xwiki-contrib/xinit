@@ -401,7 +401,7 @@ get_info ()
 
 	echo "" >> $ATTACHE_FILE
 
-#	Provide a DNS trace if the DIG commang exists
+#	Provide a DNS trace if the DIG command exists
 	if [[ $EXIT_CODE -eq 6 ]]; then
 		if [[ $USE_DNS == yes ]]; then
 			DIG=`which dig`
