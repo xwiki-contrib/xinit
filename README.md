@@ -34,6 +34,7 @@ Change Log
 * Catalina logfile isn't cleaned anymore after a thread dump performed by get-info function.
 * A new function to run a spam detection upon every mysql database of the running instance.
 * A new function to run a sanity check upon a mysql database.
+* A DNS trace in case domain name resolution fails using the 'dig' command if it exists 
 * Some other bugfixes and improvements...
 
 ### Xinit Version 1.1 - 27/07/2012 ###
