@@ -408,7 +408,7 @@ get_info ()
 			if [[ $? -eq 0 ]]; then
 				echo "#####SECTION DNS_TRACE#####" >> $ATTACHE_FILE
 				echo "" >> $ATTACHE_FILE
-				DOMAIN=`echo ${CHECK_HTTP_URL} | sed "s/http[s]\?:\/\/\([0-9a-zA-Z\.\-]*\).*/\1/"`
+				DOMAIN=`echo ${CHECK_HTTP_URL} | sed -r -e 's/https?:\/\/([^\/]+).*/\1/'`
 				$DIG +trace $DOMAIN >> $ATTACHE_FILE
 				echo "" >> $ATTACHE_FILE
 			fi
