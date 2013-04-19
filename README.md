@@ -26,6 +26,16 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 Change Log
 ==========
 
+### Xinit Version 1.2 - 19/02/2013 ###
+
+* Possibility to match several return codes for check-http function (EXPECT_HTTP_RESPONSE_CODE in xinit.cfg).
+* (Bug) Curl couldn't detect xwiki unresponsiveness, if a front-end (Apache,Nginx...) wasn't returning an error code 500. Now, total time of the check operation is taken into account.
+* Apache status has been added to the get-info function.
+* Catalina logfile isn't cleaned anymore after a thread dump performed by get-info function.
+* A new function to run a spam detection upon every mysql database of the running instance.
+* A new function to run a sanity check upon a mysql database.
+* Some other bugfixes and improvements...
+
 ### Xinit Version 1.1 - 27/07/2012 ###
 
 * a new functionality has been added to Xinit to migrate the old configuration (Xinit version <= 0.0.17) to the new version (Xinit >= 1.0)
