@@ -116,6 +116,12 @@ case "$1" in
 		TEST_OPENOFFICE="1"
 		check_openoffice $TEST_OPENOFFICE
 		;;
+	sanitycheck-mysql)
+		run_sanitycheck_mysql
+		;;
+	spamdetection-mysql)
+		run_spamdetection_mysql
+		;;
 	check-install)
 		check_install
 		;;

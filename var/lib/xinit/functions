@@ -230,7 +230,9 @@ show_help ()
 	echo "		check-openoffice	Check if OO Daemon is running and restart it if necessary. Only used for OO_SERVER_TYPE=1"
 	echo "		test-http		Just test if check-http works. No notifications or restart will be performed."
 	echo "		test-proc		Just test if check-proc works. No notifications or restart will be performed."
-	echo "		test-openoffice		Just test if OpenOffice Daemon is running or not. No actions are taken."		
+	echo "		test-openoffice		Just test if OpenOffice Daemon is running or not. No actions are taken."	
+	echo "		sanitycheck-mysql	Run a sanity check upon mysql database configured in xinit.cfg file."
+	echo "		spamdetection-mysql	Run a spam check to detect pages with huge number of comments."
 	echo "		check-install		Check XWiki installation (based on standard installation)."
 	echo "		check-dep		Check all the dependencies commands Xinit needs to run."
 	echo "		nagios-info		Informations needed for Nagios to check XWiki availability will be printed."
@@ -661,3 +663,45 @@ check_dependencies ()
 		fi
 	done
 }
+
+run_sanitycheck_mysql ()
+{
+	echo "On what database do you want to perform the Sanity Check? [default:xwiki]"
+	read sanitycheck_db
+	if [[ $sanitycheck_db == "" ]] ; then
+		sanitycheck_db="xwiki"
+	fi
+
+	if [[ "$(mysql -N -s -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -e "use $sanitycheck_db;show tables" |grep xwikidoc)" == "" ]] ; then
+		echo "Database $db is not a valid XWiki Database"
+	else
+		mysql -t -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} ${sanitycheck_db} < /var/lib/xinit/sanitycheck-my.sql
+	fi
+}
+
+run_spamdetection_mysql ()
+{
+        RED=$(tput setaf 1) # Red
+        GREEN=$(tput setaf 2) # Green
+        RST=$(tput sgr0) # Reset
+        BOLD=$(tput bold)
+
+        SPAM_DATABASES=$(mysql -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -N -s -r -e 'show databases'|grep -v ^information_schema$|grep -v ^mysql$)
+        for spam_db in $SPAM_DATABASES ; do
+           if [[ "$(mysql -t -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -N -s -e "use $spam_db;show tables" |grep xwikidoc)" == "" ]]
+           then
+                echo "Database $spam_db is not a valid XWiki Database"
+           else
+
+             SPAM_LIST=$(mysql -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -e "use $spam_db; select count(XWO_NAME) as coms,XWO_NAME as doc from xwikiobjects where XWO_CLASSNAME='XWiki.XWikiComments' GROUP BY XWO_NAME HAVING coms >= $SPAM_THRESHOLD;")
+
+             if [[ $SPAM_LIST != "" ]] ; then
+               echo "${BOLD}${RED}[WARNING]${RST} -  We have found more than $SPAM_THRESHOLD comments in database  *** $spam_db *** :"
+               mysql -t -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -e "use $spam_db; select count(XWO_NAME) as coms,XWO_NAME as doc from xwikiobjects where XWO_CLASSNAME='XWiki.XWikiComments' GROUP BY XWO_NAME HAVING coms >= $SPAM_THRESHOLD;"
+             else
+               echo "${BOLD}${GREEN}[OK]${RST} - No Spam found in $spam_db database."
+             fi
+           fi
+        done
+}
+
