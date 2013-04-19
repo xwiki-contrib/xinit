@@ -650,8 +650,14 @@ check_dependencies ()
 			echo "${BOLD}${GREEN}[OK]${RST}";
 		else
 			echo "${BOLD}${RED}[NOT FOUND]${RST}";
-			echo "Please install ${COMMAND} command.";
-			exit 17;
+			echo "Do you want to quit to install it (recommended). Otherwise, some features will be missing. (${BOLD}${GREEN}[y]${RST}/${BOLD}${RED}n${RST})"
+			read resp
+			if [[ $resp == 'n' ]] ; then
+				continue
+			else
+				echo "Please install ${COMMAND} command.";
+				exit 17;
+			fi
 		fi
 	done
 }
