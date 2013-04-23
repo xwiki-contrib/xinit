@@ -26,6 +26,10 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 Change Log
 ==========
 
+### Xinit Version 1.2.1 - 23/04/2013 ###
+
+* A DNS trace in case domain name resolution fails using the 'dig' command if it exists
+
 ### Xinit Version 1.2 - 19/02/2013 ###
 
 * Possibility to match several return codes for check-http function (EXPECT_HTTP_RESPONSE_CODE in xinit.cfg).
@@ -33,8 +37,7 @@ Change Log
 * Apache status has been added to the get-info function.
 * Catalina logfile isn't cleaned anymore after a thread dump performed by get-info function.
 * A new function to run a spam detection upon every mysql database of the running instance.
-* A new function to run a sanity check upon a mysql database.
-* A DNS trace in case domain name resolution fails using the 'dig' command if it exists 
+* A new function to run a sanity check upon a mysql database. 
 * Some other bugfixes and improvements...
 
 ### Xinit Version 1.1 - 27/07/2012 ###
