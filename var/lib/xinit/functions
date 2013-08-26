@@ -138,7 +138,7 @@ check_proc ()
 			
 			echo "FAILED"
 			log "CRITICAL" "Java process died"
-			if [[ "$1" -ne 1 ]]; then
+			if [[ "$1" -ne 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
 				send_Notification "Java process died"
 				restart_tomcat
 			fi
@@ -200,7 +200,7 @@ check_http ()
 	if [[ ${RESPONSE_CODE_MATCH} -ne 1 ]]; then
 		
 		# If test-http
-		if [[ $1 -ne 1 ]]; then
+		if [[ $1 -ne 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
 			send_Notification "wiki is NOT responding! Response code: ${RESPONSE_CODE} Expect Code: ${EXPECT_HTTP_RESPONSE_CODE} Exit Code: ${EXIT_CODE} URL: ${CHECK_HTTP_URL}"
 			restart_tomcat
 		else
