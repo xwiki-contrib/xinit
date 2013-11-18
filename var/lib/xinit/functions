@@ -66,12 +66,14 @@ stop_tomcat ()
         if [[ -n "$TOMCAT_PID" ]]; then
 
                 log "WARNING" "Java process still running. Killing it ..."
-		if [[ -n "`ps -eo pid | grep $TOMCAT_PID`" ]]; then
+                for PID in `echo $TOMCAT_PID`
+                        do
+                        if [[ -n "`ps -eo pid | grep $PID`" ]]; then
 
-	                kill -9 $TOMCAT_PID
-			sleep 2
-
-		fi
+                                kill -9 $PID
+                                sleep 2
+                        fi
+                        done
 
                 if [[ -e $CATALINA_PID ]]; then
 
