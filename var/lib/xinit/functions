@@ -113,7 +113,7 @@ check_proc ()
 
 		echo "FAILED"
 		log "CRITICAL" "Catalina pid file not found!"
-		if [[ "$1" -ne 1 ]]; then
+		if [[ "$1" -ne 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
 			send_Notification "Catalina pid file not found!"
 			restart_tomcat
 		fi
@@ -125,7 +125,7 @@ check_proc ()
 	
 		echo "FAILED"
 		log "CRITICAL" "Void pid!"
-		if [[ "$1" -ne 1 ]]; then
+		if [[ "$1" -ne 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
 			send_Notification "Void pid!"
 			restart_tomcat
 		fi
