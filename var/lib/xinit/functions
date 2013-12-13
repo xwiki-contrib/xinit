@@ -106,10 +106,9 @@ check_proc ()
 
 		log "WARNING" "Check process functionality is not enabled. Please set PROCESS_CHECK=yes in xinit.cfg file to enable it. Bye Bye!"
 		exit 1
-	fi
 	
 	# If pid file doesn't exists...
-	if [[ ! -e $CATALINA_PID ]]; then
+	elif [[ ! -e $CATALINA_PID ]]; then
 
 		echo "FAILED"
 		log "CRITICAL" "Catalina pid file not found!"
@@ -118,10 +117,8 @@ check_proc ()
 			restart_tomcat
 		fi
 		
-	fi
-
 	# If pid file exists but is empty
-	if [[ ! -s $CATALINA_PID ]]; then
+	elif [[ ! -s $CATALINA_PID ]]; then
 	
 		echo "FAILED"
 		log "CRITICAL" "Void pid!"
@@ -130,10 +127,8 @@ check_proc ()
 			restart_tomcat
 		fi
 
-	fi
-
 	# If pid file exists but the pid listed in this file doesn't exists
-	if [[ -s $CATALINA_PID ]]; then
+	elif [[ -s $CATALINA_PID ]]; then
 
 		pid="`cat $CATALINA_PID`"
 		if [[ -z "`ps --pid=$pid -o comm=`" ]]; then
@@ -146,8 +141,9 @@ check_proc ()
 			fi
 
 		fi
+	else
+		echo "OK"
 	fi
-	echo "OK"
 
 }
 
