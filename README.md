@@ -26,6 +26,14 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 Change Log
 ==========
 
+### Xinit Version 1.2.2 - 13/12/2013 ###
+
+* Maintenance mode has been added. Simply create /etc/xinit/maintenance file, and the wiki won't be restarted by check_xwiki & check_proc commands.
+* Check_proc has been fixed. Every check related to that check_proc were run, now only the first match restarts the wiki.
+* By default, Java will prefer IPv4, to prevent IPv6-related bugs. In case of full IPv6 installation, the java option -Djava.net.preferIPv4Stack should be removed from CATALINA_OPTS variable.
+* Another bug about multiple tomcat instances being started has been fixed.
+
+
 ### Xinit Version 1.2.1 - 23/04/2013 ###
 
 * A DNS trace in case domain name resolution fails using the 'dig' command if it exists
