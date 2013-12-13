@@ -139,10 +139,9 @@ check_proc ()
 				send_Notification "Java process died"
 				restart_tomcat
 			fi
-
+		else
+			echo "OK"
 		fi
-	else
-		echo "OK"
 	fi
 
 }
