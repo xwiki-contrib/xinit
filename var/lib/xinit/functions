@@ -254,6 +254,13 @@ send_Notification ()
 	local message="$1"
 	
 	get_info
+
+        MemoryPrefix=''
+        if [[ $HeapSpaceFound != 0 ]] ; then
+                MemoryPrefix="[Low Heap - ${MEM_MAX}]"
+        elif [[ $PermgenSpaceFound != 0 ]] ; then
+                MemoryPrefix="[Low Permgen - ${MAX_PERM_SIZE}]"
+        fi
 	
 	if [[ $SEND_MAIL_NOTIFICATION == yes ]]; then
 		if [[ -z $MAIL ]]; then
@@ -273,6 +280,7 @@ send_Notification ()
 
 get_info ()
 {
+
 	log "INFO" "Getting infos to send notification!"
 	
 	echo "#####SECTION SERVER_NAME#####" > $ATTACHE_FILE
@@ -415,7 +423,17 @@ get_info ()
 	echo "#####SECTION TOMCAT_LOGS#####" >> $ATTACHE_FILE
         echo "" >> $ATTACHE_FILE
 
-	tail -n $LOG_LINE_NUMBER ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
+        HeapSpaceFound=0
+        PermgenSpaceFound=0
+
+        LAST_LOG_LINES="$(tail -n $LOG_LINE_NUMBER ${TOMCAT_HOME}/logs/catalina.out | tee -a $ATTACHE_FILE)"
+        if [[ $? == 0 ]] ; then
+                if [[ $(echo $LAST_LOG_LINES | grep "java.lang.OutOfMemoryError: Java heap space") ]] ; then
+                        HeapSpaceFound=1
+                elif [[ $(echo $LAST_LOG_LINES | grep "java.lang.OutOfMemoryError: PermGen space") ]] ; then
+                        PermgenSpaceFound=1
+                fi
+        fi
 	echo "" >> $ATTACHE_FILE
 
 	echo "#####SECTION KILL_QUIT#####" >> $ATTACHE_FILE
@@ -454,13 +472,13 @@ send_Mail ()
 
 		log "ERROR" "Unable to find mailx binary file! No mails will be send! Log file will be used!"
 
-		echo "${HOSTNAME_SUBJECT}: $short_message" >> $LOG_FILE
+		echo "${HOSTNAME_SUBJECT}: $MemoryPrefix $short_message" >> $LOG_FILE
 		cat $ATTACHE_FILE >> $LOG_FILE
 	else
 
 		log "INFO" "Sending mail notification ($HOSTNAME_SUBJECT): $short_message"
 
-		mailx -s "${HOSTNAME_SUBJECT}: $short_message" $MAIL < $ATTACHE_FILE
+		mailx -s "${HOSTNAME_SUBJECT}: $MemoryPrefix $short_message" $MAIL < $ATTACHE_FILE
 
 	fi
 
