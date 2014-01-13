@@ -440,9 +440,6 @@ get_info ()
 
         echo "" >> $ATTACHE_FILE
 
-# 	We don't want to clean the log file in any way	
-#	cat /dev/null > ${TOMCAT_HOME}/logs/catalina.out
-
 	PREKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
 
 	# Execute kill -QUIT
@@ -454,8 +451,8 @@ get_info ()
 	# Calculating the thread dump size.
 	KILLQUIT_LOG_LINES="$((${POSTKILL_LOG_NUMBER} - ${PREKILL_LOG_NUMBER}))"
 
-	tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out >> $ATTACHE_FILE
-	
+        # Output the Thread Dump result and print a sorted version of it right after (count every thread allocated to a specific page)
+        tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out | tee -a $ATTACHE_FILE | grep \"http://| cut -d' ' -f1|uniq -c >> $ATTACHE_FILE
 }
 
 send_Mail ()
