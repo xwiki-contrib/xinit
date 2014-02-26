@@ -92,10 +92,20 @@ stop_tomcat ()
 restart_tomcat ()
 {
 
-	log "INFO" "Restarting Tomcat ..."
-	stop_tomcat
-	start_tomcat
-
+        log "INFO" "Restarting Tomcat ..."
+        echo>"${CONF_DIR}/maintenance"
+        stop_tomcat
+        start_tomcat
+   
+	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]]; then
+          trap "rm -f ${CONF_DIR}/maintenance 2>/dev/null" SIGINT SIGQUIT SIGTERM TERM
+          (   
+            sleep $MAINTENANCE_TIME
+            rm -f "${CONF_DIR}/maintenance" 
+          ) &>/dev/null &
+          trap SIGINT SIGQUIT SIGTERM TERM
+	fi
+ 
 }
 
 check_proc ()
