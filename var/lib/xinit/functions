@@ -93,11 +93,21 @@ restart_tomcat ()
 {
 
         log "INFO" "Restarting Tomcat ..."
-        echo>"${CONF_DIR}/maintenance"
+	KEEP_MAINTENANCE=0
+	if [[ -f ${CONF_DIR}/maintenance ]] ; then
+	  log "WARNING" "Maintenance mode is already enabled. You will need to delete ${CONF_DIR}/maintenance file by hand."
+	  KEEP_MAINTENANCE=1
+	fi
+	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
+	  log "INFO" "Enabling maintenance mode for $MAINTENANCE_TIME seconds."
+	  echo>"${CONF_DIR}/maintenance"
+	fi
+
         stop_tomcat
         start_tomcat
    
-	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]]; then
+	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]] && [[ $KEEP_MAINTENANCE != 1 ]]; then
+	  ## We'll sleep some time in a subshell and remove maintenance file not matter what eventually (even if something kills the process)
           trap "rm -f ${CONF_DIR}/maintenance 2>/dev/null" SIGINT SIGQUIT SIGTERM TERM
           (   
             sleep $MAINTENANCE_TIME
