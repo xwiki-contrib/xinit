@@ -575,20 +575,18 @@ maintenance ()
 {
 
 	## It only affects the check_proc and check_http commands, which have no effect in maintenance mode.
-	if [[ $ACTION == 'on' ]]; then
+	if [[ $1 == 'on' ]]; then
 	  log "INFO" "Enabling Maintenance mode, wiki won't be automatically restarted..."
 	  echo>${CONF_DIR}/maintenance
-	elif [[ $ACTION == 'off' ]]; then
+	elif [[ $1 == 'off' ]]; then
 	  log "INFO" "Disabling maintenance mode..."
 	  rm -f ${CONF_DIR}/maintenance 2>/dev/null
 	else
 	  ## If no action given, we switch the actual state.
 	  if [[ ! -f $CONF_DIR/maintenance ]]; then
-	    log "INFO" "Enabling Maintenance mode, wiki won't be automatically restarted..."
-	    echo>${CONF_DIR}/maintenance
+	    maintenance on
 	  else
-            log "INFO" "Disabling maintenance mode..."
-            rm -f ${CONF_DIR}/maintenance 2>/dev/null
+            maintenance off
 	  fi
 	fi
 }
