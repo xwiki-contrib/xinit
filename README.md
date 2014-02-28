@@ -18,6 +18,16 @@ Then :
     $ sudo mkdir /etc/init.d
     $ sudo ./install.sh --install
 
+Dependencies
+============
+
+These are always optional and can be skipped during the install, but some features may then not work as expected.
+
+* curl
+* pidof
+* mailx
+* mysql-client
+
 Configuration
 =============
 
@@ -25,6 +35,14 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 
 Change Log
 ==========
+
+### Xinit Version 1.2.3 - 28/02/2014 ###
+
+* Maintenance mode is now activated for a certain amount of time when the wiki is restart, manually or not. If the maintenance file already exists, it is not deleted.
+* Maintenance mode now has its own option in xwiki.sh's commands. See help for more details.
+* During a crash detected by check_proc or check_http, mail's subject is prefixed by a short status if a Memory Heap/PermGen space issue is found.
+* A list of most common pages called during the crash is gathered at the very end of the mail. It's made on the analysis of Thread Dump.
+
 
 ### Xinit Version 1.2.2 - 13/12/2013 ###
 

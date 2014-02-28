@@ -12,4 +12,4 @@ XWIKI_HOME="/usr/local/xwiki"
 XWIKI_INIT="/etc/init.d/xwiki.sh"
 MYSQL_HOME="/etc/mysql/"
 DEPEND_COMMANDS=('sed' 'awk' 'curl' 'cut' 'grep' 'cat' 'pidof' 'ps' 'date' 'hostname' 'netstat' 'tr' 'uniq' 'sort' 'egrep' 'mysql' 'du' 'top' 'kill' 'wc' 'mailx' 'ifconfig' 'uptime' 'sleep' 'tput')
-VERSION=1.2.2
+VERSION=1.2.3
