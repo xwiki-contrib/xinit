@@ -92,10 +92,29 @@ stop_tomcat ()
 restart_tomcat ()
 {
 
-	log "INFO" "Restarting Tomcat ..."
-	stop_tomcat
-	start_tomcat
+        log "INFO" "Restarting Tomcat ..."
+	KEEP_MAINTENANCE=0
+	if [[ -f ${CONF_DIR}/maintenance ]] ; then
+	  log "WARNING" "Maintenance mode is already enabled. You will need to delete ${CONF_DIR}/maintenance file by hand."
+	  KEEP_MAINTENANCE=1
+	elif [[ $MAINTENANCE_ON_RESTARTS == 1 ]] ; then
+	  log "INFO" "Enabling maintenance mode for $MAINTENANCE_TIME seconds."
+	  echo>"${CONF_DIR}/maintenance"
+	fi
 
+        stop_tomcat
+        start_tomcat
+   
+	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]] && [[ $KEEP_MAINTENANCE != 1 ]]; then
+	  ## We'll sleep some time in a subshell and remove maintenance file not matter what eventually (even if something kills the process)
+          trap "rm -f ${CONF_DIR}/maintenance 2>/dev/null" SIGINT SIGQUIT SIGTERM TERM
+          (   
+            sleep $MAINTENANCE_TIME
+            rm -f "${CONF_DIR}/maintenance" 
+          ) &>/dev/null &
+          trap SIGINT SIGQUIT SIGTERM TERM
+	fi
+ 
 }
 
 check_proc ()
@@ -228,8 +247,9 @@ show_help ()
 	echo "		test-http		Just test if check-http works. No notifications or restart will be performed."
 	echo "		test-proc		Just test if check-proc works. No notifications or restart will be performed."
 	echo "		test-openoffice		Just test if OpenOffice Daemon is running or not. No actions are taken."	
-	echo "		sanitycheck-mysql	Run a sanity check upon mysql database configured in xinit.cfg file."
-	echo "		spamdetection-mysql	Run a spam check to detect pages with huge number of comments."
+	echo "		maintenance [on|off]	Enable/disable Maintenance mode. In this mode, check_proc or http won't restart the wiki until disabled."	
+	echo "		sanitycheck-mysql	Run a sanity check upon mysql database configured in xinit.cfg file."	
+	echo "		spamdetection-mysql	Run a spam check to detect pages with huge number of comments."	
 	echo "		check-install		Check XWiki installation (based on standard installation)."
 	echo "		check-dep		Check all the dependencies commands Xinit needs to run."
 	echo "		nagios-info		Informations needed for Nagios to check XWiki availability will be printed."
@@ -549,6 +569,28 @@ list_parameters ()
 	done
 
 }
+
+
+maintenance ()
+{
+
+	## It only affects the check_proc and check_http commands, which have no effect in maintenance mode.
+	if [[ $1 == 'on' ]]; then
+	  log "INFO" "Enabling Maintenance mode, wiki won't be automatically restarted..."
+	  echo>${CONF_DIR}/maintenance
+	elif [[ $1 == 'off' ]]; then
+	  log "INFO" "Disabling maintenance mode..."
+	  rm -f ${CONF_DIR}/maintenance 2>/dev/null
+	else
+	  ## If no action given, we switch the actual state.
+	  if [[ ! -f $CONF_DIR/maintenance ]]; then
+	    maintenance on
+	  else
+            maintenance off
+	  fi
+	fi
+}
+
 
 # This function will be used to print information need for nagios to check
 # XWiki availability. These informations will contain: URL, Users and Passwords.

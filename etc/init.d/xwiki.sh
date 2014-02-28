@@ -116,6 +116,16 @@ case "$1" in
 		TEST_OPENOFFICE="1"
 		check_openoffice $TEST_OPENOFFICE
 		;;
+	maintenance)
+		ACTION="$2"
+		## If $2 is empty, we switch the actual state, to 'on' or 'off'
+		if [[ $ACTION =~ (on|off|^$) ]] ; then
+		    maintenance $ACTION
+		else
+		    show_help
+		    exit 1
+		fi
+		;;
 	sanitycheck-mysql)
 		run_sanitycheck_mysql
 		;;
