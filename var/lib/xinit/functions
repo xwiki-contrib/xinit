@@ -31,7 +31,7 @@ start_tomcat ()
 		# Enable agent
                 if [[ ! -z "$JVM_AGENTPATH" ]]; then
 			JAVA_OPTS="-agentpath:$JVM_AGENTPATH $JAVA_OPTS"
-                        export JAVA_OPTS
+			export JAVA_OPTS
 		fi
 
 		su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
