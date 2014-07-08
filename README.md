@@ -36,6 +36,10 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 Change Log
 ==========
 
+### Xinit Version 1.2.4 - 08/07/2014 ###
+* Fixed a bug which prevented automatic restarts when catalina.out was missing
+* Added support for Thread dump analysis via webservices (using jthreader.xwiki.com as an example)
+
 ### Xinit Version 1.2.3 - 28/02/2014 ###
 
 * Maintenance mode is now activated for a certain amount of time when the wiki is restart, manually or not. If the maintenance file already exists, it is not deleted.
