@@ -479,6 +479,15 @@ get_info ()
                 # Calculating the thread dump size.
                 KILLQUIT_LOG_LINES="$((${POSTKILL_LOG_NUMBER} - ${PREKILL_LOG_NUMBER}))"
 
+		                # Thread dump Analysis
+                if [ ! -z "$THREADDUMP_ANALYSIS" ]
+                        then
+                        tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out > $THREADDUMP_ANALYSIS_FILE
+                        echo "*** Thread Dump Analysis ***" >> $ATTACHE_FILE
+                        eval "$THREADDUMP_ANALYSIS" >> $ATTACHE_FILE
+                        echo "" >> $ATTACHE_FILE
+                fi
+
                 # Output the Thread Dump result and print a sorted version of it right after (count every thread allocated to a specific page)
                 tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out | tee -a $ATTACHE_FILE | grep \"http://| cut -d' ' -f1|uniq -c >> $ATTACHE_FILE
         else
