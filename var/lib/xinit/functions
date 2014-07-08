@@ -466,19 +466,24 @@ get_info ()
 
         echo "" >> $ATTACHE_FILE
 
-	PREKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+        if [ -e ${TOMCAT_HOME}/logs/catalina.out ]
+                then
+                PREKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
 
-	# Execute kill -QUIT
-        local java_pid="`pidof $TOMCAT_PROCESS_NAME`"
-        kill -3 $java_pid
-        sleep $KILL_QUIT_TIME_WAIT
+                # Execute kill -QUIT
+                local java_pid="`pidof $TOMCAT_PROCESS_NAME`"
+                kill -3 $java_pid
+                sleep $KILL_QUIT_TIME_WAIT
 
-	POSTKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
-	# Calculating the thread dump size.
-	KILLQUIT_LOG_LINES="$((${POSTKILL_LOG_NUMBER} - ${PREKILL_LOG_NUMBER}))"
+                POSTKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+                # Calculating the thread dump size.
+                KILLQUIT_LOG_LINES="$((${POSTKILL_LOG_NUMBER} - ${PREKILL_LOG_NUMBER}))"
 
-        # Output the Thread Dump result and print a sorted version of it right after (count every thread allocated to a specific page)
-        tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out | tee -a $ATTACHE_FILE | grep \"http://| cut -d' ' -f1|uniq -c >> $ATTACHE_FILE
+                # Output the Thread Dump result and print a sorted version of it right after (count every thread allocated to a specific page)
+                tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out | tee -a $ATTACHE_FILE | grep \"http://| cut -d' ' -f1|uniq -c >> $ATTACHE_FILE
+        else
+                echo "File not found: ${TOMCAT_HOME}/logs/catalina.out. Skipping KILL_QUIT" >> $ATTACHE_FILE
+        fi
 }
 
 send_Mail ()
