@@ -36,6 +36,11 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 Change Log
 ==========
 
+### Xinit Version 1.2.5 - 07/10/2014 ###
+* Changed KILL_QUIT_TIME_WAIT from 4 to 120 seconds (since some JVMs were slow to give up their threads)
+* Updated the code that gets the Thread dump (KILL_QUIT SECTION) to use actual line logic instead of blindly waiting a number of seconds
+* Full Thread dump not included in the report if Analysis is included (since it's available in the service)
+
 ### Xinit Version 1.2.4 - 08/07/2014 ###
 * Fixed a bug which prevented automatic restarts when catalina.out was missing
 * Added support for Thread dump analysis via webservices (using jthreader.xwiki.com as an example)

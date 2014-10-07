@@ -463,36 +463,41 @@ get_info ()
 	echo "" >> $ATTACHE_FILE
 
 	echo "#####SECTION KILL_QUIT#####" >> $ATTACHE_FILE
-
-        echo "" >> $ATTACHE_FILE
-
-        if [ -e ${TOMCAT_HOME}/logs/catalina.out ]
-                then
-                PREKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
-
-                # Execute kill -QUIT
-                local java_pid="`pidof $TOMCAT_PROCESS_NAME`"
-                kill -3 $java_pid
-                sleep $KILL_QUIT_TIME_WAIT
-
-                POSTKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
-                # Calculating the thread dump size.
-                KILLQUIT_LOG_LINES="$((${POSTKILL_LOG_NUMBER} - ${PREKILL_LOG_NUMBER}))"
-
-		                # Thread dump Analysis
-                if [ ! -z "$THREADDUMP_ANALYSIS" ]
-                        then
-                        tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out > $THREADDUMP_ANALYSIS_FILE
-                        echo "*** Thread Dump Analysis ***" >> $ATTACHE_FILE
-                        eval "$THREADDUMP_ANALYSIS" >> $ATTACHE_FILE
-                        echo "" >> $ATTACHE_FILE
-                fi
-
-                # Output the Thread Dump result and print a sorted version of it right after (count every thread allocated to a specific page)
-                tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out | tee -a $ATTACHE_FILE | grep \"http://| cut -d' ' -f1|uniq -c >> $ATTACHE_FILE
-        else
-                echo "File not found: ${TOMCAT_HOME}/logs/catalina.out. Skipping KILL_QUIT" >> $ATTACHE_FILE
-        fi
+        
+    echo "" >> $ATTACHE_FILE
+    if [ -e ${TOMCAT_HOME}/logs/catalina.out ]
+            then
+            local dumpFile=`tempfile`;
+            local javaPid="`pidof $TOMCAT_PROCESS_NAME`"
+            (
+            sleep $KILL_QUIT_TIME_WAIT &
+            local sleepPid=$!;
+            ( sleep 1 && kill -3 $javaPid ) &
+            local recording='';
+            local ctr='';
+            tail -f ${TOMCAT_HOME}/logs/catalina.out --pid=$sleepPid | while read line; do
+                [ "$ctr" == "0" ] && kill $sleepPid > /dev/null 2>/dev/null;
+                [ "$ctr" == "" ] || ctr=$(($ctr-1));
+                [ "$recording" == '' ] && echo "$line" | grep '^Full thread dump' && recording='yes';
+                [ "$recording" == 'yes' ] && \
+                    echo "$line" >> $dumpFile && \
+                    [ "$line" == "Heap" ] && ctr='8';
+            done
+            ) >/dev/null 2>/dev/null
+            # Thread dump Analysis (includes raw thread dump)
+            if [ ! -z "$THREADDUMP_ANALYSIS" ]
+                    then
+                    cat $dumpFile > $THREADDUMP_ANALYSIS_FILE
+                    echo "*** Thread Dump Analysis ***" >> $ATTACHE_FILE
+                    eval "$THREADDUMP_ANALYSIS" >> $ATTACHE_FILE
+                    echo "" >> $ATTACHE_FILE
+            else 
+                     # Output the Thread Dump result and print a sorted version of it right after (count every thread allocated to a specific page)
+                    cat $dumpFile | tee -a $ATTACHE_FILE | grep \"http://| cut -d' ' -f1|uniq -c >> $ATTACHE_FILE >> $ATTACHE_FILE
+            fi
+    else
+            echo "File not found: ${TOMCAT_HOME}/logs/catalina.out. Skipping KILL_QUIT" >> $ATTACHE_FILE
+    fi
 }
 
 send_Mail ()
