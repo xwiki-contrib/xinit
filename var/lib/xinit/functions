@@ -125,7 +125,7 @@ restart_tomcat ()
 
 maintenance_reminder ()
 {
-        if [[ $MAITENANCE_REMINDER == "1" ]]; then
+        if [[ $MAINTENANCE_REMINDER == "1" ]]; then
                 if [[ -f ${VAR_DIR}/maintenance ]]; then
                         if [[ ! -f ${VAR_DIR}/maintenance_lastmail_timestamp ]]; then
                                 date +%s > ${VAR_DIR}/maintenance_lastmail_timestamp
