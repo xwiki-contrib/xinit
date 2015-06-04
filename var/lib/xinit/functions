@@ -127,6 +127,8 @@ check_proc ()
 {
 	echo -n "Checking Java process ... "
 
+	maintenance_reminder
+
 	if [[ $PROCESS_CHECK != yes ]]; then
 
 		log "WARNING" "Check process functionality is not enabled. Please set PROCESS_CHECK=yes in xinit.cfg file to enable it. Bye Bye!"
@@ -175,6 +177,8 @@ check_http ()
 {
 
 	echo "Checking wiki availability..."
+
+	maintenance_reminder
 
 	if [[ $CHECK_HTTP != yes ]]; then
 
@@ -302,6 +306,28 @@ send_Notification ()
 
         fi
 
+}
+
+maintenance_reminder () 
+{
+	if [[ -f ${VAR_DIR}/maintenance ]]; then
+		if [[ ! -f ${VAR_DIR}/maintenance_lastmail_timestamp ]]; then
+			date +%s > ${VAR_DIR}/maintenance_lastmail_timestamp
+			log "INFO" "Creating new timestamp file!"
+		else
+			OLD_TIMESTAMP=`cat ${VAR_DIR}/maintenance_lastmail_timestamp`
+			DIFF=$((`date +%s`-$OLD_TIMESTAMP))
+			if [[ $DIFF -gt 3600 ]]; then
+				date +%s > ${VAR_DIR}/maintenance_lastmail_timestamp
+				log "INFO" "timestamped passed. sending mail"
+			else
+				log "INFO" "timestamped not yet passed. doing nothing."
+			fi
+		fi
+	else 
+		log "INFO" "not in maintenance so removing timestamp"
+		rm -rf ${VAR_DIR}/maintenance_lastmail_timestamp
+	fi
 }
 
 get_info ()
