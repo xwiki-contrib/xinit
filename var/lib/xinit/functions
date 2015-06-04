@@ -136,6 +136,11 @@ maintenance_reminder ()
                                 if [[ $DIFF -gt $MAINTENANCE_REMINDER_PERIOD ]]; then
                                         date +%s > ${VAR_DIR}/maintenance_lastmail_timestamp
                                         log "INFO" "timestamped passed. sending mail"
+					echo "Hello! This is a reminder that maintenance mode on `hostname` ($SERVER_NAME) " > $ATTACHE_FILE
+					echo "is currently enabled. This means that the wiki won't automatically restart in case" >> $ATTACHE_FILE
+					echo "it crashes. Please remember to disable this maintenance mode once done with work on it." >> $ATTACHE_FILE
+					echo "Thank you!" >> $ATTACHE_FILE
+					send_Mail "Maintenance mode Reminder"
                                 else
                                         log "INFO" "timestamped not yet passed. doing nothing."
                                 fi
