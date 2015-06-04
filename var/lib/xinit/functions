@@ -100,12 +100,12 @@ restart_tomcat ()
 
         log "INFO" "Restarting Tomcat ..."
 	KEEP_MAINTENANCE=0
-	if [[ -f ${CONF_DIR}/maintenance ]] ; then
-	  log "WARNING" "Maintenance mode is already enabled. You will need to delete ${CONF_DIR}/maintenance file by hand."
+	if [[ -f ${VAR_DIR}/maintenance ]] ; then
+	  log "WARNING" "Maintenance mode is already enabled. You will need to delete ${VAR_DIR}/maintenance file by hand or disable maintenance mode."
 	  KEEP_MAINTENANCE=1
 	elif [[ $MAINTENANCE_ON_RESTARTS == 1 ]] ; then
 	  log "INFO" "Enabling maintenance mode for $MAINTENANCE_TIME seconds."
-	  echo>"${CONF_DIR}/maintenance"
+	  echo>"${VAR_DIR}/maintenance"
 	fi
 
         stop_tomcat
@@ -113,10 +113,10 @@ restart_tomcat ()
    
 	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]] && [[ $KEEP_MAINTENANCE != 1 ]]; then
 	  ## We'll sleep some time in a subshell and remove maintenance file not matter what eventually (even if something kills the process)
-          trap "rm -f ${CONF_DIR}/maintenance 2>/dev/null" SIGINT SIGQUIT SIGTERM TERM
+          trap "rm -f ${VAR_DIR}/maintenance 2>/dev/null" SIGINT SIGQUIT SIGTERM TERM
           (   
             sleep $MAINTENANCE_TIME
-            rm -f "${CONF_DIR}/maintenance" 
+            rm -f "${VAR_DIR}/maintenance" 
           ) &>/dev/null &
           trap SIGINT SIGQUIT SIGTERM TERM
 	fi
@@ -137,7 +137,7 @@ check_proc ()
 
 		echo "FAILED"
 		log "CRITICAL" "Catalina pid file not found!"
-		if [[ "$1" -ne 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
+		if [[ "$1" -ne 1 ]] && [[ ! -f ${VAR_DIR}/maintenance ]]; then
 			send_Notification "Catalina pid file not found!"
 			restart_tomcat
 		fi
@@ -147,7 +147,7 @@ check_proc ()
 	
 		echo "FAILED"
 		log "CRITICAL" "Void pid!"
-		if [[ "$1" -ne 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
+		if [[ "$1" -ne 1 ]] && [[ ! -f ${VAR_DIR}/maintenance ]]; then
 			send_Notification "Void pid!"
 			restart_tomcat
 		fi
@@ -160,7 +160,7 @@ check_proc ()
 			
 			echo "FAILED"
 			log "CRITICAL" "Java process died"
-			if [[ "$1" -ne 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
+			if [[ "$1" -ne 1 ]] && [[ ! -f ${VAR_DIR}/maintenance ]]; then
 				send_Notification "Java process died"
 				restart_tomcat
 			fi
@@ -222,7 +222,7 @@ check_http ()
 	if [[ ${RESPONSE_CODE_MATCH} -ne 1 ]]; then
 		
 		# If test-http
-		if [[ $1 -ne 1 ]] && [[ ! -f ${CONF_DIR}/maintenance ]]; then
+		if [[ $1 -ne 1 ]] && [[ ! -f ${VAR_DIR}/maintenance ]]; then
 			send_Notification "wiki is NOT responding! Response code: ${RESPONSE_CODE} Expect Code: ${EXPECT_HTTP_RESPONSE_CODE} Exit Code: ${EXIT_CODE} URL: ${CHECK_HTTP_URL}"
 			restart_tomcat
 		else
@@ -597,13 +597,13 @@ maintenance ()
 	## It only affects the check_proc and check_http commands, which have no effect in maintenance mode.
 	if [[ $1 == 'on' ]]; then
 	  log "INFO" "Enabling Maintenance mode, wiki won't be automatically restarted..."
-	  echo>${CONF_DIR}/maintenance
+	  echo>${VAR_DIR}/maintenance
 	elif [[ $1 == 'off' ]]; then
 	  log "INFO" "Disabling maintenance mode..."
-	  rm -f ${CONF_DIR}/maintenance 2>/dev/null
+	  rm -f ${VAR_DIR}/maintenance 2>/dev/null
 	else
 	  ## If no action given, we switch the actual state.
-	  if [[ ! -f $CONF_DIR/maintenance ]]; then
+	  if [[ ! -f $VAR_DIR/maintenance ]]; then
 	    maintenance on
 	  else
             maintenance off
