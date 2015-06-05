@@ -66,6 +66,11 @@ else
 
 fi
 
+if [[ ! -d ${VAR_DIR} ]]; then
+	echo " Creating var folder: ${VAR_DIR} ..."
+	mkdir ${VAR_DIR}
+fi
+
 export TOMCAT_HOME JAVA_HOME CATALINA_OPTS TOMCAT_USER LANG CATALINA_PID
 
 if [[ -z "$1" ]]; then

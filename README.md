@@ -36,6 +36,10 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 Change Log
 ==========
 
+### Xinit Version 1.2.5 - 04/06/2015 ###
+* Created a new configuration option for XInit's Var folder (/var/run/xinit by default) which gets created automatically if absent
+* Moved maintenance to ${VAR_DIR}
+
 ### Xinit Version 1.2.4 - 08/07/2014 ###
 * Fixed a bug which prevented automatic restarts when catalina.out was missing
 * Added support for Thread dump analysis via webservices (using jthreader.xwiki.com as an example)
