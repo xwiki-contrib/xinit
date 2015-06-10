@@ -104,6 +104,7 @@ case "$1" in
 		check_proc
 		;;
 	check-http)
+		FORCE="$2"
 		check_http
 		;;
 	check-openoffice)
@@ -111,6 +112,7 @@ case "$1" in
 		;;
 	test-http)
 		TEST_HTTP="1"
+		FORCE="$2"
 		check_http $TEST_HTTP
 		;;
 	test-proc)

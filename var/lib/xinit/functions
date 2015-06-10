@@ -202,7 +202,7 @@ check_http ()
 
 	maintenance_reminder
 
-	if [[ $CHECK_HTTP != yes ]]; then
+	if [[ $CHECK_HTTP != yes && "$FORCE" != 'force' ]]; then
 
 		log "WARNING" "Check wiki availability functionality is not enabled. Please set CHECK_HTTP=yes in xinit.cfg file to enable it. Bye Bye!"
 		exit 1
@@ -274,9 +274,9 @@ show_help ()
 	echo "		show-report		Print a short report about xwiki/machine status."
 	echo "		list-parameters		Print all available parameters and current configuration."
 	echo "		check-proc		Check Tomcat(java) process."
-	echo "		check-http		Check if the wiki is responding or not."
+	echo "		check-http [force]	Check if the wiki is responding or not. Use force to skip CHECK_HTTP=no"
 	echo "		check-openoffice	Check if OO Daemon is running and restart it if necessary. Only used for OO_SERVER_TYPE=1"
-	echo "		test-http		Just test if check-http works. No notifications or restart will be performed."
+	echo "		test-http [force]	Just test if check-http works. No notifications or restart will be performed. Use force to skip CHECK_HTTP=no"
 	echo "		test-proc		Just test if check-proc works. No notifications or restart will be performed."
 	echo "		test-openoffice		Just test if OpenOffice Daemon is running or not. No actions are taken."	
 	echo "		maintenance [on|off]	Enable/disable Maintenance mode. In this mode, check_proc or http won't restart the wiki until disabled."	
