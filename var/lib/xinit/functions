@@ -204,7 +204,7 @@ check_http ()
 
 	if [[ $CHECK_HTTP != yes && "$FORCE" != 'force' ]]; then
 
-		log "WARNING" "Check wiki availability functionality is not enabled. Please set CHECK_HTTP=yes in xinit.cfg file to enable it. Bye Bye!"
+		log "WARNING" "Check wiki availability functionality is not enabled. Please set CHECK_HTTP=yes in xinit.cfg file to enable it or use the force parameter. Bye Bye!"
 		exit 1
 
 	fi
