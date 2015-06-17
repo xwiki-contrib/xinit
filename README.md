@@ -35,6 +35,8 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 
 Change Log
 ==========
+### Xinit Version 1.2.6 - 08/06/2015 ###
+* Added a force parameter to the check/test_http to ignore the CHECK_HTTP variable.
 
 ### Xinit Version 1.2.6 - 08/06/2015 ###
 * Added an option to remove the tomcat temp folder contents on start (enabled by default)
