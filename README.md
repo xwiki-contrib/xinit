@@ -41,6 +41,9 @@ Change Log
 ### Xinit Version 1.2.6 - 08/06/2015 ###
 * Added an option to remove the tomcat temp folder contents on start (enabled by default)
 
+### Xinit Version 1.2.6 - 17/06/2015 ###
+* Add a "check" option to the maintenance switch to return the state of the maintenance mode
+
 ### Xinit Version 1.2.5 - 04/06/2015 ###
 * Created a new configuration option for XInit's Var folder (/var/run/xinit by default) which gets created automatically if absent
 * Moved maintenance to ${VAR_DIR}
