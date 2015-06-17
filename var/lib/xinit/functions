@@ -4,8 +4,13 @@
 start_tomcat ()
 {
 	log "INFO" "Starting Tomcat Server ..."
-	
+
 	if [[ -z "`ps auxww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`" ]]; then
+
+		if [[ "$CLEAN_TEMP_ON_STARTUP" == "1" ]]; then
+			log "INFO" "Cleaning Tomcat's temp folder ... "
+			rm -rf ${TOMCAT_HOME}/temp/*
+		fi
 
 		if [[ -e "$CATALINA_PID" ]]; then
 
@@ -13,7 +18,7 @@ start_tomcat ()
 			rm -f "$CATALINA_PID"
 		fi
 		if [[ $JVM_DEBUG == yes ]]; then
-			
+
 			log "INFO" "Debug mode activated!"
 			CATALINA_OPTS="$CATALINA_OPTS $JVM_DEBUG_OPTS"
 		fi
