@@ -124,7 +124,7 @@ case "$1" in
 	maintenance)
 		ACTION="$2"
 		## If $2 is empty, we switch the actual state, to 'on' or 'off'
-		if [[ $ACTION =~ (on|off|^$) ]] ; then
+		if [[ $ACTION =~ (check|on|off|^$) ]] ; then
 		    maintenance $ACTION
 		else
 		    show_help

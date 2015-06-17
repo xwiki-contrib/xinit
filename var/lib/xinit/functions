@@ -627,6 +627,12 @@ maintenance ()
 	elif [[ $1 == 'off' ]]; then
 	  log "INFO" "Disabling maintenance mode..."
 	  rm -f ${VAR_DIR}/maintenance 2>/dev/null
+	elif [[ $1 == 'check' ]]; then
+	  if [[ ! -f $VAR_DIR/maintenance ]]; then
+	    echo "Maintenance mode is OFF"
+          else
+	    echo "Maintenance mode is ON"
+	  fi
 	else
 	  ## If no action given, we switch the actual state.
 	  if [[ ! -f $VAR_DIR/maintenance ]]; then
