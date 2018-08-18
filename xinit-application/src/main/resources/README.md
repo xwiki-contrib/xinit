@@ -4,7 +4,7 @@ Installation
 Linux
 -----
 
-Simply run : 
+Simply run :
 
     $ sudo ./install.sh --install
 
