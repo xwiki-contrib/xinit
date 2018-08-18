@@ -28,7 +28,7 @@
     <version>9.11-5</version>
   </parent>
   <artifactId>xinit</artifactId>
-  <version>1.2.7</version>
+  <version>1.2.8-SNAPSHOT</version>
   <name>XInit - Parent POM</name>
   <packaging>pom</packaging>
   <description>Admin tool to manager an XWiki/Tomcat instance</description>
@@ -36,7 +36,7 @@
     <connection>scm:git:git://github.com/xwiki-contrib/xinit.git</connection>
     <developerConnection>scm:git:git@github.com:xwiki-contrib/xinit.git</developerConnection>
     <url>https://github.com/xwiki-contrib/xinit/tree/master</url>
-    <tag>xinit-1.2.7</tag>
+    <tag>HEAD</tag>
   </scm>
   <developers>
     <developer>
