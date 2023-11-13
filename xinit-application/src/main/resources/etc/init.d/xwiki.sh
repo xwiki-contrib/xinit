@@ -15,15 +15,6 @@
 #				#
 #################################
 
-if [[ $UID -ne 0 ]]; then
-
-	echo
-	echo " Error: Only root can run this script! Exiting ..."
-	echo
-	exit 2
-
-fi
-
 if [[ ! -e /var/lib/xinit/vars ]]; then
 
 	echo
@@ -147,6 +138,16 @@ case "$1" in
 		;;
 	nagios-info)
 		nagios_info
+		;;
+	cronjob)
+		ACTION="$2"
+		## If $2 is empty, we switch the actual state, to 'on' or 'off'
+		if [[ $ACTION =~ (check|on|off|^$) ]] ; then
+		    cronjob $ACTION
+		else
+		    show_help
+		    exit 1
+		fi
 		;;
 	version)
 		echo ""

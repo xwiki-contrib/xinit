@@ -3,6 +3,12 @@
 
 start_tomcat ()
 {
+
+    if [[ -z "${LAUNCHED_BY_SYSTEMD}" ]] ; then
+        echo "Please use systemctl start xwiki.service instead."
+        exit 1
+    fi
+
 	log "INFO" "Starting Tomcat Server ..."
 
 	if [[ -z "`ps auxww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`" ]]; then
@@ -39,8 +45,12 @@ start_tomcat ()
 			export JAVA_OPTS
 		fi
 
-		su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
-
+        if [[ $UID -eq 0 ]]; then
+            su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
+        else
+            $TOMCAT_HOME/bin/catalina.sh start
+        fi
+		
 		# If enabled, make first request
 		if [[ $MAKE_FIRST_REQUEST == yes ]]; then
 
@@ -60,9 +70,18 @@ start_tomcat ()
 
 stop_tomcat ()
 {
+    if [[ -z "${LAUNCHED_BY_SYSTEMD}" ]] ; then
+        echo "Please use systemctl stop xwiki.service instead."
+        exit 1
+    fi
+
         log "INFO" "Stopping Tomcat ..."
 
-        su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
+        if [[ $UID -eq 0 ]]; then
+            su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
+        else
+            $TOMCAT_HOME/bin/catalina.sh stop
+        fi
 
         sleep 3
 
@@ -102,6 +121,11 @@ stop_tomcat ()
 
 restart_tomcat ()
 {
+
+    if [[ -z "${LAUNCHED_BY_SYSTEMD}" ]] ; then
+        echo "Please use systemctl restart xwiki.service instead."
+        exit 1
+    fi
 
         log "INFO" "Restarting Tomcat ..."
 	KEEP_MAINTENANCE=0
@@ -265,6 +289,31 @@ check_http ()
 
 }
 
+cronjob ()
+{
+
+cronjob=$(cat << EOF
+*/1 * * * * tomcat /etc/init.d/xwiki.sh check-proc > /dev/null 2> /dev/null
+*/5 * * * * tomcat /etc/init.d/xwiki.sh check-http > /dev/null 2> /dev/null
+EOF
+)
+
+	if [[ $1 == 'on' ]]; then
+          echo "${cronjob}" | crontab -
+	  log "INFO" "Enabling cronjobs..."
+	elif [[ $1 == 'off' ]]; then
+          crontab -l | grep -F -v "${cronjob}" | crontab -
+	  log "INFO" "Disabling cronjobs..."
+	elif [[ $1 == 'check' ]]; then
+        if ! crontab -l 2> /dev/null | grep -F -q "${cronjob}"; then
+	    echo "cronjobs are disabled."
+          else
+	    echo "cronjobs are enabled."
+	  fi
+    fi
+
+}
+
 show_help ()
 {
 	echo
@@ -284,12 +333,13 @@ show_help ()
 	echo "		test-http [force]	Just test if check-http works. No notifications or restart will be performed. Use force to skip CHECK_HTTP=no"
 	echo "		test-proc		Just test if check-proc works. No notifications or restart will be performed."
 	echo "		test-openoffice		Just test if OpenOffice Daemon is running or not. No actions are taken."	
-	echo "		maintenance [on|off]	Enable/disable Maintenance mode. In this mode, check_proc or http won't restart the wiki until disabled."	
+	echo "		maintenance [on|off|check]	Enable/disable Maintenance mode. In this mode, check_proc or http won't restart the wiki until disabled."	
 	echo "		sanitycheck-mysql	Run a sanity check upon mysql database configured in xinit.cfg file."	
 	echo "		spamdetection-mysql	Run a spam check to detect pages with huge number of comments."	
 	echo "		check-install		Check XWiki installation (based on standard installation)."
 	echo "		check-dep		Check all the dependencies commands Xinit needs to run."
 	echo "		nagios-info		Informations needed for Nagios to check XWiki availability will be printed."
+	echo "		cronjob [on|off|check]	Enable/disable cronjobs checks managing automatic restarts."	
 	echo "		version			Print Xinit and XWiki version."
 	echo
 

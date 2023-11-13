@@ -35,6 +35,11 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 
 Change Log
 ==========
+### Xinit Version 1.3 - 08/11/2023 ###
+* Added the possibility to run xinit with a non-root user.
+* Added the possibility to set the cronjob checks via xwiki.sh script.
+* Increased default values for MEM_START and MEM_MAX variables.
+
 ### Xinit Version 1.2.6 - 17/06/2015 ###
 * Added a force parameter to the check/test_http to ignore the CHECK_HTTP variable.
 * Added an option to remove the tomcat temp folder contents on start (enabled by default)
