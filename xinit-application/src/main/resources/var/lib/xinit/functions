@@ -45,7 +45,7 @@ start_tomcat ()
 			export JAVA_OPTS
 		fi
 
-        if [[ $UID -eq 0 ]]; then
+        if [[ "${ROOT_INSTALL}" != "false" ]]; then
             su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
         else
             $TOMCAT_HOME/bin/catalina.sh start
@@ -77,7 +77,7 @@ stop_tomcat ()
 
         log "INFO" "Stopping Tomcat ..."
 
-        if [[ $UID -eq 0 ]]; then
+        if [[ "${ROOT_INSTALL}" != "false" ]]; then
             su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
         else
             $TOMCAT_HOME/bin/catalina.sh stop
@@ -122,7 +122,7 @@ stop_tomcat ()
 restart_tomcat ()
 {
 
-    if [[ -z "${LAUNCHED_BY_SYSTEMD}" ]] ; then
+    if [[ -z "${LAUNCHED_BY_SYSTEMD}" ]] && [[ ${CHECK_PROC_RESTART} != "true" ]] && [[ ${CHECK_HTTP_RESTART} != "true" ]] ; then
         echo "Please use systemctl restart xwiki.service instead."
         exit 1
     fi
@@ -137,8 +137,8 @@ restart_tomcat ()
 	  echo>"${VAR_DIR}/maintenance"
 	fi
 
-        stop_tomcat
-        start_tomcat
+        systemctl stop xwiki.service
+        systemctl start xwiki.service
    
 	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]] && [[ $KEEP_MAINTENANCE != 1 ]]; then
 	  ## We'll sleep some time in a subshell and remove maintenance file not matter what eventually (even if something kills the process)
@@ -178,12 +178,15 @@ maintenance_reminder ()
 
 check_proc ()
 {
+    ²
 	echo -n "Checking Java process ... "
 
 	if [[ $PROCESS_CHECK != yes ]]; then
 
 		log "WARNING" "Check process functionality is not enabled. Please set PROCESS_CHECK=yes in xinit.cfg file to enable it. Bye Bye!"
 		exit 1
+
+        CHECK_PROC_RESTART="true"
 	
 	# If pid file doesn't exists...
 	elif [[ ! -e $CATALINA_PID ]]; then
@@ -242,6 +245,8 @@ check_http ()
 		log "ERROR" "No URL was specified to check wiki availability. Please see CHECK_HTTP_URL parameter in xinit configuration."
 		exit 1
 	fi
+
+    CHECK_HTTP_RESTART="true"
 	
 	log "INFO" "URL: ${CHECK_HTTP_URL}"
 	cat /dev/null > ${REQUEST_ERROR_OUTPUT}
@@ -298,18 +303,34 @@ cronjob=$(cat << EOF
 EOF
 )
 
-	if [[ $1 == 'on' ]]; then
-          echo "${cronjob}" | crontab -
-	  log "INFO" "Enabling cronjobs..."
-	elif [[ $1 == 'off' ]]; then
-          crontab -l | grep -F -v "${cronjob}" | crontab -
+    if [[ $1 == 'on' ]]; then
+        if [[ "${ROOT_INSTALL}" == "false" ]] ; then
+            echo "${cronjob}" | crontab -
+        else
+            echo "${cronjob//tomcat/root}" > /etc/cron.d/xinit
+        fi
+	    log "INFO" "Enabling cronjobs..."
+    elif [[ $1 == 'off' ]]; then
+        if [[ "${ROOT_INSTALL}" == "false" ]] ; then
+            crontab -l | grep -F -v "${cronjob}" | crontab -
+        else
+            rm -f /etc/cron.d/xinit
+        fi
 	  log "INFO" "Disabling cronjobs..."
 	elif [[ $1 == 'check' ]]; then
-        if ! crontab -l 2> /dev/null | grep -F -q "${cronjob}"; then
-	    echo "cronjobs are disabled."
-          else
-	    echo "cronjobs are enabled."
-	  fi
+        if [[ "${ROOT_INSTALL}" == "false" ]] ; then
+            if ! crontab -l 2> /dev/null | grep -F -q "${cronjob}"; then
+                echo "cronjobs are disabled."
+            else
+               echo "cronjobs are enabled."
+	        fi
+        else
+            if grep -F -q "${cronjob//tomcat/root}" /etc/cron.d/xinit 2> /dev/null ; then
+                echo "cronjobs are enabled."
+            else
+                echo "cronjobs are disabled."
+            fi
+        fi
     fi
 
 }
