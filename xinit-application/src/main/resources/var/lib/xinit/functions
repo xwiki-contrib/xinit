@@ -477,17 +477,19 @@ get_info ()
 	df -h >> $ATTACHE_FILE
 	echo "" >> $ATTACHE_FILE
 
-	echo "#####SECTION DATABASES_DISK_USAGE#####" >> $ATTACHE_FILE
+    if which mysql ; then
+        echo "#####SECTION DATABASES_DISK_USAGE#####" >> $ATTACHE_FILE
         echo "" >> $ATTACHE_FILE
 
-	DBS="`mysql --user=$MYSQL_USER --password=$MYSQL_PASSWORD --host=$MYSQL_HOST -e "show databases;" | egrep -v "(Database|information_schema)"`"
+	    DBS="`mysql --user=$MYSQL_USER --password=$MYSQL_PASSWORD --host=$MYSQL_HOST -e "show databases;" | egrep -v "(Database|information_schema)"`"
 
-	for db in $DBS; do
-
-	        du -sh /var/lib/mysql/$db >> $ATTACHE_FILE
-
-	done
-	echo "" >> $ATTACHE_FILE
+        if [[ "${UID}" -eq 0 ]] ; then
+            for db in $DBS; do
+                du -sh /var/lib/mysql/$db >> $ATTACHE_FILE
+            done
+            echo "" >> $ATTACHE_FILE
+        fi
+    fi
 
 	echo "#####SECTION JAVA_THREADS_NUMBER#####" >> $ATTACHE_FILE
         echo "" >> $ATTACHE_FILE

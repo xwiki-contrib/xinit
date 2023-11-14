@@ -180,7 +180,7 @@ EOF
 )
     # We set cron only if xinit is installed by root
     echo "Creating cronjob"
-    if [[ "${ROOT_INSTALL}" == "true" ]] ; then
+    if [[ "${ROOT_INSTALL}" == "false" ]] ; then
         echo "${cronjob}" | crontab -u ${DEFAULT_TOMCAT_USER} -
     else
         echo "${cronjob//tomcat/root}" > /etc/cron.d/xinit
