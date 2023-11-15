@@ -9,6 +9,12 @@ start_tomcat ()
         exit 1
     fi
 
+    XINIT_INSTALL_USER=$(stat -c '%u' ${VAR_DIR})
+    if [[ ${UID} != ${XINIT_INSTALL_USER} ]] ; then
+        echo "Please use the right user (${XINIT_INSTALL_USER}) to manage xwiki.service."
+        exit 1
+    fi
+
 	log "INFO" "Starting Tomcat Server ..."
 
 	if [[ -z "`ps auxww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`" ]]; then
@@ -72,6 +78,12 @@ stop_tomcat ()
 {
     if [[ -z "${LAUNCHED_BY_SYSTEMD}" ]] ; then
         echo "Please use systemctl stop xwiki.service instead."
+        exit 1
+    fi
+
+    XINIT_INSTALL_USER=$(stat -c '%u' ${VAR_DIR})
+    if [[ ${UID} != ${XINIT_INSTALL_USER} ]] ; then
+        echo "Please use the right user (${XINIT_INSTALL_USER}) to manage xwiki.service."
         exit 1
     fi
 
@@ -178,15 +190,14 @@ maintenance_reminder ()
 
 check_proc ()
 {
-    ²
 	echo -n "Checking Java process ... "
+
+    CHECK_PROC_RESTART="true"
 
 	if [[ $PROCESS_CHECK != yes ]]; then
 
 		log "WARNING" "Check process functionality is not enabled. Please set PROCESS_CHECK=yes in xinit.cfg file to enable it. Bye Bye!"
 		exit 1
-
-        CHECK_PROC_RESTART="true"
 	
 	# If pid file doesn't exists...
 	elif [[ ! -e $CATALINA_PID ]]; then
@@ -302,6 +313,12 @@ cronjob=$(cat << EOF
 */5 * * * * tomcat /etc/init.d/xwiki.sh check-http > /dev/null 2> /dev/null
 EOF
 )
+
+    XINIT_INSTALL_USER=$(stat -c '%u' ${VAR_DIR})
+    if [[ ${UID} != ${XINIT_INSTALL_USER} ]] ; then
+        echo "Please use the right user (${XINIT_INSTALL_USER}) to manage cronjobs."
+        exit 1
+    fi
 
     if [[ $1 == 'on' ]]; then
         if [[ "${ROOT_INSTALL}" == "false" ]] ; then
@@ -698,6 +715,11 @@ list_parameters ()
 maintenance ()
 {
 
+    XINIT_INSTALL_USER=$(stat -c '%u' ${VAR_DIR})
+    if [[ ${UID} != ${XINIT_INSTALL_USER} ]] ; then
+        echo "Please use the right user (${XINIT_INSTALL_USER}) to manage maintenance mode."
+        exit 1
+    fi
 	## It only affects the check_proc and check_http commands, which have no effect in maintenance mode.
 	if [[ $1 == 'on' ]]; then
 	  log "INFO" "Enabling Maintenance mode, wiki won't be automatically restarted..."
