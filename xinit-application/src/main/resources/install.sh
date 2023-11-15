@@ -156,14 +156,6 @@ if [[ -n ${tomcat_service} ]]  ; then
    systemctl disable "${tomcat_service%%##*/}"
 fi
 
-if [[ ! -d ${VAR_DIR} ]] ; then
-    echo "Creating xinit var folder"
-    mkdir ${VAR_DIR}
-    if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        chown -R "${DEFAULT_TOMCAT_USER}:${DEFAULT_TOMCAT_USER}" "${VAR_DIR}"
-    fi
-fi
-
 if [[ ! -f ${LOG_FILE} ]] ; then
     echo "Creating xinit log file"
     touch ${LOG_FILE}

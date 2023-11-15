@@ -14,6 +14,5 @@ DEPEND_COMMANDS=('sed' 'awk' 'curl' 'cut' 'grep' 'cat' 'pidof' 'ps' 'date' 'host
 VERSION=1.3
 USE_SYSTEMD="true"
 DEFAULT_TOMCAT_USER="tomcat"
-VAR_DIR="/var/run/xinit"
 INSTALL_CRONJOB="true"
 ROOT_INSTALL="true"
