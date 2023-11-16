@@ -500,11 +500,13 @@ get_info ()
 
 	    DBS="`mysql --user=$MYSQL_USER --password=$MYSQL_PASSWORD --host=$MYSQL_HOST -e "show databases;" | egrep -v "(Database|information_schema)"`"
 
-        if [[ "${UID}" -eq 0 ]] ; then
-            for db in $DBS; do
-                du -sh /var/lib/mysql/$db >> $ATTACHE_FILE
-            done
-            echo "" >> $ATTACHE_FILE
+        if [ -d "/var/lib/mysql" ] ; then
+            if [[ "${UID}" -eq 0 ]] ; then
+                for db in $DBS; do
+                    du -sh /var/lib/mysql/$db >> $ATTACHE_FILE
+                done
+                echo "" >> $ATTACHE_FILE
+            fi
         fi
     fi
 

@@ -40,6 +40,7 @@ Change Log
 * Added the possibility to set the cronjob checks via xwiki.sh script.
 * Increased default values for MEM_START and MEM_MAX variables.
 * Every start/stop/restart action is now performed with systemctl.
+* The mysql client is now not mandatory anymore.
 
 ### Xinit Version 1.2.6 - 17/06/2015 ###
 * Added a force parameter to the check/test_http to ignore the CHECK_HTTP variable.
