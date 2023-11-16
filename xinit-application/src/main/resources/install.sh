@@ -81,7 +81,7 @@ if [[ -d $LIB_DIR ]]; then
 	rm -rf $LIB_DIR
 	cp -r var/lib/xinit $LIB_DIR
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        chown -R "${DEFAULT_TOMCAT_USER}:${DEFAULT_TOMCAT_USER}" "${LIB_DIR}"
+        chown -R "${TOMCAT_USER}:${TOMCAT_USER}" "${LIB_DIR}"
     fi
 	
 
@@ -90,7 +90,7 @@ else
 	echo "Installing lib dir $LIB_DIR..."
 	cp -r var/lib/xinit $LIB_DIR
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        chown -R "${DEFAULT_TOMCAT_USER}:${DEFAULT_TOMCAT_USER}" "${LIB_DIR}"
+        chown -R "${TOMCAT_USER}:${TOMCAT_USER}" "${LIB_DIR}"
     fi
 	
 fi
@@ -103,7 +103,7 @@ if [[ -e /etc/init.d/xwiki.sh ]]; then
     cp etc/init.d/xwiki.sh /etc/init.d/xwiki.sh
     chmod a+x /etc/init.d/xwiki.sh
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        chown "${DEFAULT_TOMCAT_USER}:${DEFAULT_TOMCAT_USER}" /etc/init.d/xwiki.sh
+        chown "${TOMCAT_USER}:${TOMCAT_USER}" /etc/init.d/xwiki.sh
     fi
 	
 else
@@ -112,7 +112,7 @@ else
     cp etc/init.d/xwiki.sh /etc/init.d/xwiki.sh
     chmod a+x /etc/init.d/xwiki.sh
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        chown "${DEFAULT_TOMCAT_USER}:${DEFAULT_TOMCAT_USER}" /etc/init.d/xwiki.sh
+        chown "${TOMCAT_USER}:${TOMCAT_USER}" /etc/init.d/xwiki.sh
     fi
 fi
 
@@ -124,8 +124,8 @@ if [[ -n ${USE_SYSTEMD} ]] ; then
 	    rm -f /etc/systemd/system/xwiki.service
 	    cp etc/systemd/xwiki.service /etc/systemd/system/xwiki.service
         if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-            sed -i "s/XWIKI_USER/${DEFAULT_TOMCAT_USER}/" /etc/systemd/system/xwiki.service
-            sed -i "s/XWIKI_GROUP/${DEFAULT_TOMCAT_USER}/" /etc/systemd/system/xwiki.service
+            sed -i "s/XWIKI_USER/${TOMCAT_USER}/" /etc/systemd/system/xwiki.service
+            sed -i "s/XWIKI_GROUP/${TOMCAT_USER}/" /etc/systemd/system/xwiki.service
         else
             sed -i '/User\|Group/d' /etc/systemd/system/xwiki.service
         fi
@@ -137,8 +137,8 @@ if [[ -n ${USE_SYSTEMD} ]] ; then
 	    echo "Installing xwiki.service ..."
 	    cp etc/systemd/xwiki.service /etc/systemd/system/xwiki.service
         if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-            sed -i "s/XWIKI_USER/${DEFAULT_TOMCAT_USER}/" /etc/systemd/system/xwiki.service
-            sed -i "s/XWIKI_GROUP/${DEFAULT_TOMCAT_USER}/" /etc/systemd/system/xwiki.service
+            sed -i "s/XWIKI_USER/${TOMCAT_USER}/" /etc/systemd/system/xwiki.service
+            sed -i "s/XWIKI_GROUP/${TOMCAT_USER}/" /etc/systemd/system/xwiki.service
         else
             sed -i '/User\|Group/d' /etc/systemd/system/xwiki.service
         fi
@@ -160,7 +160,7 @@ if [[ ! -f ${LOG_FILE} ]] ; then
     echo "Creating xinit log file"
     touch ${LOG_FILE}
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        chown "${DEFAULT_TOMCAT_USER}:${DEFAULT_TOMCAT_USER}" "${LOG_FILE}"
+        chown "${TOMCAT_USER}:${TOMCAT_USER}" "${LOG_FILE}"
     fi
 fi
 
@@ -173,7 +173,7 @@ EOF
     # We set cron only if xinit is installed by root
     echo "Creating cronjob"
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        echo "${cronjob}" | crontab -u ${DEFAULT_TOMCAT_USER} -
+        echo "${cronjob}" | crontab -u ${TOMCAT_USER} -
     else
         echo "${cronjob//tomcat/root}" > /etc/cron.d/xinit
     fi
@@ -186,7 +186,7 @@ if [[ ! -d ${CONF_DIR} ]]; then
 	mkdir ${CONF_DIR}
 	cp -f etc/xinit/xinit.cfg /etc/xinit/xinit.cfg
     if [[ "${ROOT_INSTALL}" == "true" ]] ; then
-        chown -R "${DEFAULT_TOMCAT_USER}:${DEFAULT_TOMCAT_USER}" "${CONF_DIR}"
+        chown -R "${TOMCAT_USER}:${TOMCAT_USER}" "${CONF_DIR}"
     fi
 	echo "Installation Finished!"
 
@@ -200,7 +200,7 @@ else
 	echo "Installing xinit default configuration! Please edit /etc/xinit/xinit.cfg as you need!"
 	cp -f etc/xinit/xinit.cfg /etc/xinit/xinit.cfg
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        chown -R "${DEFAULT_TOMCAT_USER}:${DEFAULT_TOMCAT_USER}" "${CONF_DIR}"
+        chown -R "${TOMCAT_USER}:${TOMCAT_USER}" "${CONF_DIR}"
     fi
     echo "Installation Finished!"
 
