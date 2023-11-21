@@ -309,8 +309,8 @@ cronjob ()
 {
 
 cronjob=$(cat << EOF
-*/1 * * * * tomcat /etc/init.d/xwiki.sh check-proc > /dev/null 2> /dev/null
-*/5 * * * * tomcat /etc/init.d/xwiki.sh check-http > /dev/null 2> /dev/null
+*/1 * * * * root /etc/init.d/xwiki.sh check-proc > /dev/null 2> /dev/null
+*/5 * * * * root /etc/init.d/xwiki.sh check-http > /dev/null 2> /dev/null
 EOF
 )
 
@@ -322,27 +322,27 @@ EOF
 
     if [[ $1 == 'on' ]]; then
         if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-            echo "${cronjob}" | crontab -
+            echo "${cronjob//root/}" | crontab -
         else
-            echo "${cronjob//tomcat/root}" > /etc/cron.d/xinit
+            echo "${cronjob}" > /etc/cron.d/xinit
         fi
 	    log "INFO" "Enabling cronjobs..."
     elif [[ $1 == 'off' ]]; then
         if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-            crontab -l | grep -F -v "${cronjob}" | crontab -
+            crontab -l | grep -F -v "${cronjob//root/}" | crontab -
         else
             rm -f /etc/cron.d/xinit
         fi
 	  log "INFO" "Disabling cronjobs..."
 	elif [[ $1 == 'check' ]]; then
         if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-            if ! crontab -l 2> /dev/null | grep -F -q "${cronjob}"; then
+            if ! crontab -l 2> /dev/null | grep -F -q "${cronjob//root/}"; then
                 echo "cronjobs are disabled."
             else
                echo "cronjobs are enabled."
 	        fi
         else
-            if grep -F -q "${cronjob//tomcat/root}" /etc/cron.d/xinit 2> /dev/null ; then
+            if grep -F -q "${cronjob}" /etc/cron.d/xinit 2> /dev/null ; then
                 echo "cronjobs are enabled."
             else
                 echo "cronjobs are disabled."
