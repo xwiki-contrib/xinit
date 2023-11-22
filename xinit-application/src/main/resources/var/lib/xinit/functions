@@ -149,8 +149,15 @@ restart_tomcat ()
 	  echo>"${VAR_DIR}/maintenance"
 	fi
 
+    if [[ ${UID} -eq "0" ]] ; then
         systemctl stop xwiki.service
         systemctl start xwiki.service
+        # if xinit is not running as ROOT, then elevated privileges are needed
+    else
+        sudo systemctl stop xwiki.service
+        sudo systemctl start xwiki.service
+
+    fi
    
 	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]] && [[ $KEEP_MAINTENANCE != 1 ]]; then
 	  ## We'll sleep some time in a subshell and remove maintenance file not matter what eventually (even if something kills the process)
