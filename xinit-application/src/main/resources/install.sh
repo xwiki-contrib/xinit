@@ -159,9 +159,10 @@ fi
 if [[ ! -f ${LOG_FILE} ]] ; then
     echo "Creating xinit log file"
     touch ${LOG_FILE}
-    if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        chown "${TOMCAT_USER}:${TOMCAT_USER}" "${LOG_FILE}"
-    fi
+fi
+
+if [[ "${ROOT_INSTALL}" == "false" ]] ; then
+    chown "${TOMCAT_USER}:${TOMCAT_USER}" "${LOG_FILE}"
 fi
 
 if [[ "${INSTALL_CRONJOB}" == "true" ]] ; then
