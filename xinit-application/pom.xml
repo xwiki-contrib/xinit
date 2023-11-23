@@ -25,10 +25,10 @@
   <parent>
     <groupId>org.xwiki.contrib</groupId>
     <artifactId>xinit</artifactId>
-    <version>1.3.2</version>
+    <version>1.3.2-SNAPSHOT</version>
   </parent>
   <artifactId>xinit-application</artifactId>
-  <version>1.3.2</version>
+  <version>1.3.2-SNAPSHOT</version>
   <name>XInit - Application</name>
   <packaging>pom</packaging>
   <description>Admin tool to manager an XWiki/Tomcat instance</description>
