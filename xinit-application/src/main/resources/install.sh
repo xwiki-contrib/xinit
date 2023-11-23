@@ -1,10 +1,10 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
 
 #################################
-#				#
-#	xinit install script	#
-#				#
+#                               #
+#	xinit install script        #
+#                               #
 #################################
 
 # load the function file
@@ -30,17 +30,17 @@ xinit_update ()
 
 	if [[ -e /var/lib/xinit/vars ]]; then	
 
-		installed_xinit_version="`grep VERSION /var/lib/xinit/vars | cut -d = -f 2`"
-		current_xinit_version="`grep VERSION var/lib/xinit/vars | cut -d = -f 2`"
+		installed_xinit_version="$(grep VERSION /var/lib/xinit/vars | cut -d = -f 2)"
+		current_xinit_version="$(grep VERSION var/lib/xinit/vars | cut -d = -f 2)"
 
-		if [[ $installed_xinit_version != $current_xinit_version ]]; then
+		if [[ ${installed_xinit_version} != "${current_xinit_version}" ]]; then
 
 			xinit_install
 
 		else
 
 			echo
-			echo " Xinit is up to date. Xinit version: $installed_xinit_version"
+			echo " Xinit is up to date. Xinit version: ${installed_xinit_version}"
 			echo
 			exit 0
 		fi
@@ -75,11 +75,11 @@ else
 
 fi
 
-if [[ -d $LIB_DIR ]]; then
+if [[ -d ${LIB_DIR} ]]; then
 
-	echo "Lib dir ($LIB_DIR) already exists. Installing the last one ..."
-	rm -rf $LIB_DIR
-	cp -r var/lib/xinit $LIB_DIR
+	echo "Lib dir (${LIB_DIR}) already exists. Installing the last one ..."
+	rm -rf "${LIB_DIR}"
+	cp -r var/lib/xinit "${LIB_DIR}"
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
         chown -R "${TOMCAT_USER}:${TOMCAT_USER}" "${LIB_DIR}"
     fi
@@ -87,8 +87,8 @@ if [[ -d $LIB_DIR ]]; then
 
 else
 
-	echo "Installing lib dir $LIB_DIR..."
-	cp -r var/lib/xinit $LIB_DIR
+	echo "Installing lib dir ${LIB_DIR}..."
+	cp -r var/lib/xinit "${LIB_DIR}"
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
         chown -R "${TOMCAT_USER}:${TOMCAT_USER}" "${LIB_DIR}"
     fi
@@ -158,7 +158,7 @@ fi
 
 if [[ ! -f ${LOG_FILE} ]] ; then
     echo "Creating xinit log file"
-    touch ${LOG_FILE}
+    touch "${LOG_FILE}"
 fi
 
 if [[ "${ROOT_INSTALL}" == "false" ]] ; then
@@ -174,7 +174,7 @@ EOF
     # We set cron only if xinit is installed by root
     echo "Creating cronjob"
     if [[ "${ROOT_INSTALL}" == "false" ]] ; then
-        echo "${cronjob}" | crontab -u ${TOMCAT_USER} -
+        echo "${cronjob}" | crontab -u "${TOMCAT_USER}" -
     else
         echo "${cronjob//tomcat/root}" > /etc/cron.d/xinit
     fi
@@ -184,7 +184,7 @@ fi
 if [[ ! -d ${CONF_DIR} ]]; then
 
 	echo "Installing xinit default configuration! Please edit /etc/xinit/xinit.cfg as you need!"
-	mkdir ${CONF_DIR}
+	mkdir "${CONF_DIR}"
 	cp -f etc/xinit/xinit.cfg /etc/xinit/xinit.cfg
     if [[ "${ROOT_INSTALL}" == "true" ]] ; then
         chown -R "${TOMCAT_USER}:${TOMCAT_USER}" "${CONF_DIR}"
