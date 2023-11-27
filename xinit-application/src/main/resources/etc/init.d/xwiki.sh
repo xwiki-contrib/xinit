@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ### BEGIN INIT INFO
 # Provides:             java
@@ -28,7 +28,7 @@ else
 
 fi
 
-for lib in $LIBS_FILE; do
+for lib in ${LIBS_FILE}; do
 
 	if [[ ! -e "${LIB_DIR}/${lib}" ]]; then
 
@@ -39,7 +39,7 @@ for lib in $LIBS_FILE; do
 
 	else
 
-		. ${LIB_DIR}/${lib}
+		. "${LIB_DIR}"/"${lib}"
 
 	fi
 
@@ -47,7 +47,7 @@ done
 
 if [[ -e ${CONF_DIR}/${XWIKI_CONF_FILE} ]]; then
 
-	. ${CONF_DIR}/${XWIKI_CONF_FILE} 
+	. "${CONF_DIR}"/"${XWIKI_CONF_FILE}"
 
 else
 
@@ -59,7 +59,7 @@ fi
 
 if [[ ! -d ${VAR_DIR} ]]; then
 	echo " Creating var folder: ${VAR_DIR} ..."
-	mkdir ${VAR_DIR}
+	mkdir "${VAR_DIR}"
 fi
 
 export TOMCAT_HOME JAVA_HOME CATALINA_OPTS TOMCAT_USER LANG CATALINA_PID
@@ -104,21 +104,21 @@ case "$1" in
 	test-http)
 		TEST_HTTP="1"
 		FORCE="$2"
-		check_http $TEST_HTTP
+		check_http "${TEST_HTTP}"
 		;;
 	test-proc)
 		TEST_PROC="1"
-		check_proc $TEST_PROC
+		check_proc "${TEST_PROC}"
 		;;
 	test-openoffice)
 		TEST_OPENOFFICE="1"
-		check_openoffice $TEST_OPENOFFICE
+		check_openoffice "${TEST_OPENOFFICE}"
 		;;
 	maintenance)
 		ACTION="$2"
 		## If $2 is empty, we switch the actual state, to 'on' or 'off'
 		if [[ $ACTION =~ (check|on|off|^$) ]] ; then
-		    maintenance $ACTION
+		    maintenance "${ACTION}"
 		else
 		    show_help
 		    exit 1
@@ -142,8 +142,8 @@ case "$1" in
 	cronjob)
 		ACTION="$2"
 		## If $2 is empty, we switch the actual state, to 'on' or 'off'
-		if [[ $ACTION =~ (check|on|off|^$) ]] ; then
-		    cronjob $ACTION
+		if [[ ${ACTION} =~ (check|on|off|^$) ]] ; then
+		    cronjob "${ACTION}"
 		else
 		    show_help
 		    exit 1
@@ -152,7 +152,7 @@ case "$1" in
 	version)
 		echo ""
 		echo " Xinit version $VERSION"
-		echo " XWiki `cat ${XWIKI_INSTALL_DIR}/WEB-INF/version.properties`"
+		echo " XWiki $(cat "${XWIKI_INSTALL_DIR}"/WEB-INF/version.properties)"
 		echo
 		;;
 	*)
