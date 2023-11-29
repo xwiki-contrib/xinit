@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 
 start_tomcat ()
@@ -9,56 +9,56 @@ start_tomcat ()
         exit 1
     fi
 
-    XINIT_INSTALL_USER=$(stat -c '%u' ${VAR_DIR})
-    if [[ ${UID} != ${XINIT_INSTALL_USER} ]] ; then
+    XINIT_INSTALL_USER=$(stat -c '%u' "${VAR_DIR}")
+    if [[ ${UID} != "${XINIT_INSTALL_USER}" ]] ; then
         echo "Please use the right user (${XINIT_INSTALL_USER}) to manage xwiki.service."
         exit 1
     fi
 
 	log "INFO" "Starting Tomcat Server ..."
 
-	if [[ -z "`ps auxww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`" ]]; then
+	if [[ -z "$(pgrep "${TOMCAT_PROCESS_NAME}" | grep "${TOMCAT_HOME}" | awk '{print $2}')" ]]; then
 
-		if [[ "$CLEAN_TEMP_ON_STARTUP" == "1" ]]; then
+		if [[ "${CLEAN_TEMP_ON_STARTUP}" == "1" ]]; then
 			log "INFO" "Cleaning Tomcat's temp folder ... "
-			rm -rf ${TOMCAT_HOME}/temp/*
+			rm -rf "${TOMCAT_HOME}"/temp/*
 		fi
 
-		if [[ -e "$CATALINA_PID" ]]; then
+		if [[ -e "${CATALINA_PID}" ]]; then
 
 			log "INFO" "Found catalina.pid file, removing it ... "
-			rm -f "$CATALINA_PID"
+			rm -f "${CATALINA_PID}"
 		fi
-		if [[ $JVM_DEBUG == yes ]]; then
+		if [[ ${JVM_DEBUG} == yes ]]; then
 
 			log "INFO" "Debug mode activated!"
-			CATALINA_OPTS="$CATALINA_OPTS $JVM_DEBUG_OPTS"
+			CATALINA_OPTS="${CATALINA_OPTS} ${JVM_DEBUG_OPTS}"
 		fi
 
 		# Stop OO Server if it is running (OO_SERVER_TYPE=0)
-		if [[ $OO_CHECK -eq 1 ]] && [[ $OO_SERVER_TYPE -eq 0 ]]; then 
+		if [[ ${OO_CHECK} -eq 1 ]] && [[ ${OO_SERVER_TYPE} -eq 0 ]]; then 
                         stop_openoffice
                 fi
 
 		# Start OpenOffice Daemon if OO_SERVER_TYPE=1
-                if [[ $OO_CHECK -eq 1 ]] && [[ $OO_SERVER_TYPE -eq 1 ]]; then
+                if [[ ${OO_CHECK} -eq 1 ]] && [[ ${OO_SERVER_TYPE} -eq 1 ]]; then
                         start_openoffice
                 fi
 
 		# Enable agent
-                if [[ ! -z "$JVM_AGENTPATH" ]]; then
-			JAVA_OPTS="-agentpath:$JVM_AGENTPATH $JAVA_OPTS"
+                if [[ -n "${JVM_AGENTPATH}" ]]; then
+			JAVA_OPTS="-agentpath:${JVM_AGENTPATH} ${JAVA_OPTS}"
 			export JAVA_OPTS
 		fi
 
         if [[ "${ROOT_INSTALL}" != "false" ]]; then
-            su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh start
+            su "${TOMCAT_USER}" -- "${TOMCAT_HOME}"/bin/catalina.sh start
         else
-            $TOMCAT_HOME/bin/catalina.sh start
+            "${TOMCAT_HOME}"/bin/catalina.sh start
         fi
 		
 		# If enabled, make first request
-		if [[ $MAKE_FIRST_REQUEST == yes ]]; then
+		if [[ ${MAKE_FIRST_REQUEST} == yes ]]; then
 
 			log "INFO" "Making first request ... "
 			sleep 7
@@ -81,8 +81,8 @@ stop_tomcat ()
         exit 1
     fi
 
-    XINIT_INSTALL_USER=$(stat -c '%u' ${VAR_DIR})
-    if [[ ${UID} != ${XINIT_INSTALL_USER} ]] ; then
+    XINIT_INSTALL_USER=$(stat -c '%u' "${VAR_DIR}")
+    if [[ ${UID} != "${XINIT_INSTALL_USER}" ]] ; then
         echo "Please use the right user (${XINIT_INSTALL_USER}) to manage xwiki.service."
         exit 1
     fi
@@ -90,41 +90,41 @@ stop_tomcat ()
         log "INFO" "Stopping Tomcat ..."
 
         if [[ "${ROOT_INSTALL}" != "false" ]]; then
-            su $TOMCAT_USER -- $TOMCAT_HOME/bin/catalina.sh stop
+            su "${TOMCAT_USER}" -- "${TOMCAT_HOME}"/bin/catalina.sh stop
         else
-            $TOMCAT_HOME/bin/catalina.sh stop
+            "${TOMCAT_HOME}"/bin/catalina.sh stop
         fi
 
         sleep 3
 
-        if [[ -s $CATALINA_PID ]]; then
+        if [[ -s ${CATALINA_PID} ]]; then
 
-                TOMCAT_PID="`cat $CATALINA_PID`"
+                TOMCAT_PID="$(cat "${CATALINA_PID}")"
         else
 
-                TOMCAT_PID="`ps auxww | grep ${TOMCAT_PROCESS_NAME} | grep ${TOMCAT_HOME} | awk '{print $2}'`"
+                TOMCAT_PID="$(pgrep "${TOMCAT_PROCESS_NAME}" | grep "${TOMCAT_HOME}" | awk '{print $2}')"
         fi
 
-        if [[ -n "$TOMCAT_PID" ]]; then
+        if [[ -n "${TOMCAT_PID}" ]]; then
 
                 log "WARNING" "Java process still running. Killing it ..."
-                for PID in `echo $TOMCAT_PID`
+                for PID in ${TOMCAT_PID}
                         do
-                        if [[ -n "`ps -eo pid | grep $PID`" ]]; then
+                        if [[ -n "$(ps -eo pid | grep "${PID}")" ]]; then
 
-                                kill -9 $PID
+                                kill -9 "${PID}"
                                 sleep 2
                         fi
                         done
 
-                if [[ -e $CATALINA_PID ]]; then
+                if [[ -e ${CATALINA_PID} ]]; then
 
                         log "WARNING" "Pid file exists. Removing it ..."
-                        rm -f $CATALINA_PID
+                        rm -f "${CATALINA_PID}"
                 fi
         fi
 
-	if [[ $OO_CHECK -eq 1 ]] && [[ $OO_SERVER_TYPE -eq 0 ]]; then
+	if [[ ${OO_CHECK} -eq 1 ]] && [[ ${OO_SERVER_TYPE} -eq 0 ]]; then
 
 		stop_openoffice
 	fi
@@ -144,8 +144,8 @@ restart_tomcat ()
 	if [[ -f ${VAR_DIR}/maintenance ]] ; then
 	  log "WARNING" "Maintenance mode is already enabled. You will need to delete ${VAR_DIR}/maintenance file by hand or disable maintenance mode."
 	  KEEP_MAINTENANCE=1
-	elif [[ $MAINTENANCE_ON_RESTARTS == 1 ]] ; then
-	  log "INFO" "Enabling maintenance mode for $MAINTENANCE_TIME seconds."
+	elif [[ ${MAINTENANCE_ON_RESTARTS} == 1 ]] ; then
+	  log "INFO" "Enabling maintenance mode for ${MAINTENANCE_TIME} seconds."
 	  echo>"${VAR_DIR}/maintenance"
 	fi
 
@@ -159,11 +159,11 @@ restart_tomcat ()
 
     fi
    
-	if [[ $MAINTENANCE_ON_RESTARTS == 1 ]] && [[ $KEEP_MAINTENANCE != 1 ]]; then
+	if [[ ${MAINTENANCE_ON_RESTARTS} == 1 ]] && [[ ${KEEP_MAINTENANCE} != 1 ]]; then
 	  ## We'll sleep some time in a subshell and remove maintenance file not matter what eventually (even if something kills the process)
-          trap "rm -f ${VAR_DIR}/maintenance 2>/dev/null" SIGINT SIGQUIT SIGTERM TERM
+          trap 'rm -f "${VAR_DIR}/maintenance" 2>/dev/null' SIGINT SIGQUIT SIGTERM TERM
           (   
-            sleep $MAINTENANCE_TIME
+            sleep "${MAINTENANCE_TIME}"
             rm -f "${VAR_DIR}/maintenance" 
           ) &>/dev/null &
           trap SIGINT SIGQUIT SIGTERM TERM
@@ -173,24 +173,24 @@ restart_tomcat ()
 
 maintenance_reminder ()
 {
-        if [[ $MAINTENANCE_REMINDER == "1" ]]; then
+        if [[ ${MAINTENANCE_REMINDER} == "1" ]]; then
                 if [[ -f ${VAR_DIR}/maintenance ]]; then
                         if [[ ! -f ${VAR_DIR}/maintenance_lastmail_timestamp ]]; then
-                                date +%s > ${VAR_DIR}/maintenance_lastmail_timestamp
+                                date +%s > "${VAR_DIR}"/maintenance_lastmail_timestamp
                         else
-                                OLD_TIMESTAMP=`cat ${VAR_DIR}/maintenance_lastmail_timestamp`
-                                DIFF=$((`date +%s`-$OLD_TIMESTAMP))
-                                if [[ $DIFF -gt $MAINTENANCE_REMINDER_PERIOD ]]; then
-                                        date +%s > ${VAR_DIR}/maintenance_lastmail_timestamp
-					echo "Hello! This is a reminder that maintenance mode on `hostname`" > $ATTACHE_FILE
-					echo "is currently enabled. This means that the wiki won't automatically restart in case" >> $ATTACHE_FILE
-					echo "it crashes. Please remember to disable this maintenance mode once done with work on it." >> $ATTACHE_FILE
-					echo "Thank you!" >> $ATTACHE_FILE
+                                OLD_TIMESTAMP=$(cat "${VAR_DIR}"/maintenance_lastmail_timestamp)
+                                DIFF=$(($(date +%s)-OLD_TIMESTAMP))
+                                if [[ ${DIFF} -gt ${MAINTENANCE_REMINDER_PERIOD} ]]; then
+                                        date +%s > "${VAR_DIR}"/maintenance_lastmail_timestamp
+					echo "Hello! This is a reminder that maintenance mode on $(hostname)" > "${ATTACHE_FILE}"
+					echo "is currently enabled. This means that the wiki won't automatically restart in case" >> "${ATTACHE_FILE}"
+					echo "it crashes. Please remember to disable this maintenance mode once done with work on it." >> "${ATTACHE_FILE}"
+					echo "Thank you!" >> "${ATTACHE_FILE}"
 					send_Mail "Maintenance mode Reminder"
                                 fi
                         fi
                 else
-                        rm -rf ${VAR_DIR}/maintenance_lastmail_timestamp
+                        rm -rf "${VAR_DIR}"/maintenance_lastmail_timestamp
                 fi
         fi
 }
@@ -201,13 +201,13 @@ check_proc ()
 
     CHECK_PROC_RESTART="true"
 
-	if [[ $PROCESS_CHECK != yes ]]; then
+	if [[ ${PROCESS_CHECK} != yes ]]; then
 
 		log "WARNING" "Check process functionality is not enabled. Please set PROCESS_CHECK=yes in xinit.cfg file to enable it. Bye Bye!"
 		exit 1
 	
 	# If pid file doesn't exists...
-	elif [[ ! -e $CATALINA_PID ]]; then
+	elif [[ ! -e ${CATALINA_PID} ]]; then
 
 		echo "FAILED"
 		log "CRITICAL" "Catalina pid file not found!"
@@ -217,7 +217,7 @@ check_proc ()
 		fi
 		
 	# If pid file exists but is empty
-	elif [[ ! -s $CATALINA_PID ]]; then
+	elif [[ ! -s ${CATALINA_PID} ]]; then
 	
 		echo "FAILED"
 		log "CRITICAL" "Void pid!"
@@ -227,10 +227,10 @@ check_proc ()
 		fi
 
 	# If pid file exists but the pid listed in this file doesn't exists
-	elif [[ -s $CATALINA_PID ]]; then
+	elif [[ -s ${CATALINA_PID} ]]; then
 
-		pid="`cat $CATALINA_PID`"
-		if [[ -z "`ps --pid=$pid -o comm=`" ]]; then
+		pid="$(cat "${CATALINA_PID}")"
+		if [[ -z "$(ps --pid="${pid}" -o comm=)" ]]; then
 			
 			echo "FAILED"
 			log "CRITICAL" "Java process died"
@@ -252,7 +252,7 @@ check_http ()
 
 	maintenance_reminder
 
-	if [[ $CHECK_HTTP != yes && "$FORCE" != 'force' ]]; then
+	if [[ ${CHECK_HTTP} != yes && "${FORCE}" != 'force' ]]; then
 
 		log "WARNING" "Check wiki availability functionality is not enabled. Please set CHECK_HTTP=yes in xinit.cfg file to enable it or use the force parameter. Bye Bye!"
 		exit 1
@@ -267,22 +267,22 @@ check_http ()
     CHECK_HTTP_RESTART="true"
 	
 	log "INFO" "URL: ${CHECK_HTTP_URL}"
-	cat /dev/null > ${REQUEST_ERROR_OUTPUT}
+	cat /dev/null > "${REQUEST_ERROR_OUTPUT}"
 
-	if [[ $USE_BASIC_AUTH == yes ]]; then
+	if [[ ${USE_BASIC_AUTH} == yes ]]; then
 
-		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure -u ${HTACCESS_USERNAME}:${HTACCESS_PASSWORD} --max-time ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
+		RESPONSE_CODE="$(curl --write-out '%{http_code}' --digest --location-trusted --insecure -u "${HTACCESS_USERNAME}:${HTACCESS_PASSWORD}" --max-time "${CHECK_HTTP_TIMEOUT}" --retry "${CHECK_HTTP_TRIES}" --retry-delay "${CHECK_HTTP_WAITRETRY}" --silent --show-error --output /dev/null "${CHECK_HTTP_URL}" 2> "${REQUEST_ERROR_OUTPUT}")"
 		EXIT_CODE="$?"
 
-	elif [[ $USE_BASIC_AUTH == no ]]; then
+	elif [[ ${USE_BASIC_AUTH} == no ]]; then
 
-		RESPONSE_CODE="`curl --write-out %{http_code} --digest --location-trusted --insecure --max-time ${CHECK_HTTP_TIMEOUT} --retry ${CHECK_HTTP_TRIES} --retry-delay ${CHECK_HTTP_WAITRETRY} --silent --show-error --output /dev/null ${CHECK_HTTP_URL} 2> ${REQUEST_ERROR_OUTPUT}`"
+		RESPONSE_CODE="$(curl --write-out '%{http_code}' --digest --location-trusted --insecure --max-time "${CHECK_HTTP_TIMEOUT}" --retry "${CHECK_HTTP_TRIES}" --retry-delay "${CHECK_HTTP_WAITRETRY}" --silent --show-error --output /dev/null "${CHECK_HTTP_URL}" 2> "${REQUEST_ERROR_OUTPUT}")"
 		EXIT_CODE="$?"
 	fi
 
 	# DNS USE
-	if [[ $EXIT_CODE -eq 6 ]]; then
-		if [[ $USE_DNS == yes ]]; then
+	if [[ ${EXIT_CODE} -eq 6 ]]; then
+		if [[ ${USE_DNS} == yes ]]; then
 			log "WARNING" "DNS Problem. Unable to resolve domain name for ${CHECK_HTTP_URL}"
 			send_Notification "DNS Problem. Unable to resolve domain name!"
 			exit 1
@@ -291,7 +291,7 @@ check_http ()
 	
 	# Check response code
 	RESPONSE_CODE_MATCH=0
-	for TEST_RESPONSE_CODE in `echo ${EXPECT_HTTP_RESPONSE_CODE}| tr ',' '\n'`
+	for TEST_RESPONSE_CODE in $(echo "${EXPECT_HTTP_RESPONSE_CODE}" | tr ',' '\n')
 	do
 		if [[ ${TEST_RESPONSE_CODE} -eq ${RESPONSE_CODE} ]]; then
 			RESPONSE_CODE_MATCH=1
@@ -321,8 +321,8 @@ cronjob=$(cat << EOF
 EOF
 )
 
-    XINIT_INSTALL_USER=$(stat -c '%u' ${VAR_DIR})
-    if [[ ${UID} != ${XINIT_INSTALL_USER} ]] ; then
+    XINIT_INSTALL_USER=$(stat -c '%u' "${VAR_DIR}")
+    if [[ ${UID} != "${XINIT_INSTALL_USER}" ]] ; then
         echo "Please use the right user (${XINIT_INSTALL_USER}) to manage cronjobs."
         exit 1
     fi
@@ -394,10 +394,12 @@ log ()
 {
 	local severity="$1"
 	local message="$2"
-	local _date="`date +%d-%m-%Y`"
-	local _time="`date +%T`"
-	
-	echo "${_date} ${_time} [${severity}]: ${message}" >> $LOG_FILE
+	local _date
+	local _time
+	_date="$(date +%d-%m-%Y)"
+	_time="$(date +%T)"
+
+	echo "${_date} ${_time} [${severity}]: ${message}" >> "${LOG_FILE}"
 	echo "${message}"
 }
 
@@ -408,23 +410,23 @@ send_Notification ()
 	get_info
 
         MemoryPrefix=''
-        if [[ $HeapSpaceFound != 0 ]] ; then
+        if [[ ${HeapSpaceFound} != 0 ]] ; then
                 MemoryPrefix="[Low Heap - ${MEM_MAX}]"
-        elif [[ $PermgenSpaceFound != 0 ]] ; then
+        elif [[ ${PermgenSpaceFound} != 0 ]] ; then
                 MemoryPrefix="[Low Permgen - ${MAX_PERM_SIZE}]"
         fi
 	
-	if [[ $SEND_MAIL_NOTIFICATION == yes ]]; then
-		if [[ -z $MAIL ]]; then
+	if [[ ${SEND_MAIL_NOTIFICATION} == yes ]]; then
+		if [[ -z ${MAIL} ]]; then
 			log "WARNING" "No email address was set. Please see MAIL parameter."
 		else
-			send_Mail "$message"
+			send_Mail "${message}"
 		fi
         fi
         
-        if [[ $SEND_JABBER_MESSAGE == yes ]]; then
+        if [[ ${SEND_JABBER_MESSAGE} == yes ]]; then
 
-        	send_Jabber_Message "$message"
+        	send_Jabber_Message "${message}"
 
         fi
 
@@ -435,193 +437,194 @@ get_info ()
 
 	log "INFO" "Getting infos to send notification!"
 	
-	echo "#####SECTION SERVER_NAME#####" > $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
+	echo "#####SECTION SERVER_NAME#####" > "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
 
-	if [[ -n "$SERVER_NAME" ]]; then
+	if [[ -n "${SERVER_NAME}" ]]; then
 
-		echo $SERVER_NAME >> $ATTACHE_FILE
+		echo "${SERVER_NAME}" >> "${ATTACHE_FILE}"
 
 	else
 	
-		echo "`hostname | cut -d"." -f 1`" >> $ATTACHE_FILE
+		hostname | cut -d"." -f 1 >> "${ATTACHE_FILE}"
 
 	fi
-	echo "" >> $ATTACHE_FILE
+	echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION FULL_SERVER_INFO#####" >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
-	echo `uname -a` >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+	echo "#####SECTION FULL_SERVER_INFO#####" >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
+	uname -a >> "${ATTACHE_FILE}"
+    echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION XWIKI_VERSION#####" >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
+	echo "#####SECTION XWIKI_VERSION#####" >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
 	if [[ -s ${XWIKI_INSTALL_DIR}/WEB-INF/version.properties ]]; then
 	
-		cat ${XWIKI_INSTALL_DIR}/WEB-INF/version.properties | cut -d "=" -f 2 >> $ATTACHE_FILE
+		cut -d "=" -f 2 "${XWIKI_INSTALL_DIR}"/WEB-INF/version.properties  >> "${ATTACHE_FILE}"
 
 	else
 
-		echo "${XWIKI_INSTALL_DIR}/WEB-INF/version.properties file not found or file size = 0" >> $ATTACHE_FILE
+		echo "${XWIKI_INSTALL_DIR}/WEB-INF/version.properties file not found or file size = 0" >> "${ATTACHE_FILE}"
 
 	fi
-	echo "" >> $ATTACHE_FILE
+	echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION XINIT_VERSION#####" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+	echo "#####SECTION XINIT_VERSION#####" >> "${ATTACHE_FILE}"
+    echo "" >> "${ATTACHE_FILE}"
 	
-	grep "VERSION" /var/lib/xinit/vars | cut -d "=" -f2 >> $ATTACHE_FILE
+	grep "VERSION" /var/lib/xinit/vars | cut -d "=" -f2 >> "${ATTACHE_FILE}"
 
-	echo "" >> $ATTACHE_FILE
+	echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION IP_ADDRESSES#####" >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
+	echo "#####SECTION IP_ADDRESSES#####" >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
 
-	/sbin/ifconfig | grep inet | tr -s ' ' | cut -d " " -f1,2,3 >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
+	/sbin/ifconfig | grep inet | tr -s ' ' | cut -d " " -f1,2,3 >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION CONNECTION_TYPE_STATUS#####" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+	echo "#####SECTION CONNECTION_TYPE_STATUS#####" >> "${ATTACHE_FILE}"
+    echo "" >> "${ATTACHE_FILE}"
 
 	for port in ${CONNECTION_STATE_PORTS}; do
 		
-		echo "Port: $port" >> $ATTACHE_FILE
-		netstat -tn | egrep "^tcp.*:$port" | tr -s " " | cut -d " " -f6 | sort | uniq -c >> $ATTACHE_FILE
-		echo "" >> $ATTACHE_FILE
+		echo "Port: ${port}" >> "${ATTACHE_FILE}"
+		netstat -tn | grep -E "^tcp.*:$port" | tr -s " " | cut -d " " -f6 | sort | uniq -c >> "${ATTACHE_FILE}"
+		echo "" >> "${ATTACHE_FILE}"
 
 	done
 
-	echo "#####SECTION CONNECTION_APACHE_STATUS#####" >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
-	curl http://127.0.0.1/server-status | sed -n '/^$/!{s/<[^>]*>/ /g;p;}' >> $ATTACHE_FILE
+	echo "#####SECTION CONNECTION_APACHE_STATUS#####" >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
+	curl http://127.0.0.1/server-status | sed -n '/^$/!{s/<[^>]*>/ /g;p;}' >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION DISK_USAGE#####" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+	echo "#####SECTION DISK_USAGE#####" >> "${ATTACHE_FILE}"
+    echo "" >> "${ATTACHE_FILE}"
 	
-	df -h >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
+	df -h >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
 
     if which mysql ; then
-        echo "#####SECTION DATABASES_DISK_USAGE#####" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+        echo "#####SECTION DATABASES_DISK_USAGE#####" >> "${ATTACHE_FILE}"
+        echo "" >> "${ATTACHE_FILE}"
 
-	    DBS="`mysql --user=$MYSQL_USER --password=$MYSQL_PASSWORD --host=$MYSQL_HOST -e "show databases;" | egrep -v "(Database|information_schema)"`"
+	    DBS="$(mysql --user="${MYSQL_USER}" --password="${MYSQL_PASSWORD}" --host="${MYSQL_HOST}" -e "show databases;" | grep -E -v "(Database|information_schema)")"
 
         if [ -d "/var/lib/mysql" ] ; then
             if [[ "${UID}" -eq 0 ]] ; then
-                for db in $DBS; do
-                    du -sh /var/lib/mysql/$db >> $ATTACHE_FILE
+                for db in ${DBS}; do
+                    du -sh /var/lib/mysql/"${db}" >> "${ATTACHE_FILE}"
                 done
-                echo "" >> $ATTACHE_FILE
+                echo "" >> "${ATTACHE_FILE}"
             fi
         fi
     fi
 
-	echo "#####SECTION JAVA_THREADS_NUMBER#####" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+	echo "#####SECTION JAVA_THREADS_NUMBER#####" >> "${ATTACHE_FILE}"
+    echo "" >> "${ATTACHE_FILE}"
 	
-	echo "Java Threads Number: `ps -L -C java | wc -l`" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+	echo "Java Threads Number: $(ps -L -C java | wc -l)" >> "${ATTACHE_FILE}"
+    echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION TOP_INFORMATION#####" >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
+	echo "#####SECTION TOP_INFORMATION#####" >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
 
 	PIDS=""
 
-	for daemon in $DAEMONS_TO_MONITOR ; do
+	for daemon in ${DAEMONS_TO_MONITOR} ; do
 
-	        if [[ `pidof $daemon` ]]; then
-	                PIDS="$PIDS `pidof $daemon`"
+	        if [[ $(pidof "${daemon}") ]]; then
+	                PIDS="${PIDS} $(pidof "${daemon}")"
 	        fi
 	
 	done
 	
-	pids_top_format="`echo "$PIDS" | sed 's/ //1' | sed 's/ /,/g'`"
+	pids_top_format="$(echo "${PIDS}" | sed 's/ //1' | sed 's/ /,/g')"
 	
-	top -b -n 3 -d 0.5 -p${pids_top_format} >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
+	top -b -n 3 -d 0.5 -p"${pids_top_format}" >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION MYSQL_FULL_PROCESS_LIST#####" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+	echo "#####SECTION MYSQL_FULL_PROCESS_LIST#####" >> "${ATTACHE_FILE}"
+    echo "" >> "${ATTACHE_FILE}"
 
-	if [[ `which mysql` ]]; then
+	if [[ $(which mysql) ]]; then
 
-		mysql --user=$MYSQL_USER --password=$MYSQL_PASSWORD --host=$MYSQL_HOST -e "show full processlist;" >> $ATTACHE_FILE
+		mysql --user="${MYSQL_USER}" --password="${MYSQL_PASSWORD}" --host="${MYSQL_HOST}" -e "show full processlist;" >> "${ATTACHE_FILE}"
 
 	else
 
 		log "WARNING" "Couldn't find mysql binary file."
-		echo "Couldn't find mysql binary" >> $ATTACHE_FILE
+		echo "Couldn't find mysql binary" >> "${ATTACHE_FILE}"
 	fi
-	echo "" >> $ATTACHE_FILE
+	echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION HTTP_OUTPUT#####" >> $ATTACHE_FILE
-	echo "" >> $ATTACHE_FILE
+	echo "#####SECTION HTTP_OUTPUT#####" >> "${ATTACHE_FILE}"
+	echo "" >> "${ATTACHE_FILE}"
 
-	cat ${REQUEST_ERROR_OUTPUT} >> $ATTACHE_FILE
+	cat "${REQUEST_ERROR_OUTPUT}" >> "${ATTACHE_FILE}"
 
-	echo "" >> $ATTACHE_FILE
+	echo "" >> "${ATTACHE_FILE}"
 
 #	Provide a DNS trace if the DIG command exists
-	if [[ $EXIT_CODE -eq 6 ]]; then
-		if [[ $USE_DNS == yes ]]; then
-			DIG=`which dig`
+	if [[ ${EXIT_CODE} -eq 6 ]]; then
+		if [[ ${USE_DNS} == yes ]]; then
+			DIG=$(which dig)
 			if [[ $? -eq 0 ]]; then
-				echo "#####SECTION DNS_TRACE#####" >> $ATTACHE_FILE
-				echo "" >> $ATTACHE_FILE
-				DOMAIN=`echo ${CHECK_HTTP_URL} | sed -r -e 's/https?:\/\/([^\/]+).*/\1/'`
-				$DIG +trace $DOMAIN >> $ATTACHE_FILE
-				echo "" >> $ATTACHE_FILE
+				echo "#####SECTION DNS_TRACE#####" >> "${ATTACHE_FILE}"
+				echo "" >> "${ATTACHE_FILE}"
+				DOMAIN=$(echo "${CHECK_HTTP_URL}" | sed -r -e 's/https?:\/\/([^\/]+).*/\1/')
+				$DIG +trace "${DOMAIN}" >> "${ATTACHE_FILE}"
+				echo "" >> "${ATTACHE_FILE}"
 			fi
 		fi
 	fi
 
-	echo "#####SECTION TOMCAT_LOGS#####" >> $ATTACHE_FILE
-        echo "" >> $ATTACHE_FILE
+	echo "#####SECTION TOMCAT_LOGS#####" >> "${ATTACHE_FILE}"
+    echo "" >> "${ATTACHE_FILE}"
 
-        HeapSpaceFound=0
-        PermgenSpaceFound=0
+    HeapSpaceFound=0
+    PermgenSpaceFound=0
 
-        LAST_LOG_LINES="$(tail -n $LOG_LINE_NUMBER ${TOMCAT_HOME}/logs/catalina.out | tee -a $ATTACHE_FILE)"
+    LAST_LOG_LINES="$(tail -n "${LOG_LINE_NUMBER}" "${TOMCAT_HOME}"/logs/catalina.out | tee -a "${ATTACHE_FILE}")"
         if [[ $? == 0 ]] ; then
-                if [[ $(echo $LAST_LOG_LINES | grep "java.lang.OutOfMemoryError: Java heap space") ]] ; then
+                if grep -q -F "java.lang.OutOfMemoryError: Java heap space" <<< "${LAST_LOG_LINES}" ; then
                         HeapSpaceFound=1
-                elif [[ $(echo $LAST_LOG_LINES | grep "java.lang.OutOfMemoryError: PermGen space") ]] ; then
+                elif grep -q -F "java.lang.OutOfMemoryError: PermGen space" <<< "${LAST_LOG_LINES}" ; then
                         PermgenSpaceFound=1
                 fi
         fi
-	echo "" >> $ATTACHE_FILE
+	echo "" >> "${ATTACHE_FILE}"
 
-	echo "#####SECTION KILL_QUIT#####" >> $ATTACHE_FILE
+	echo "#####SECTION KILL_QUIT#####" >> "${ATTACHE_FILE}"
 
-        echo "" >> $ATTACHE_FILE
+        echo "" >> "${ATTACHE_FILE}"
 
-        if [ -e ${TOMCAT_HOME}/logs/catalina.out ]
+        if [ -e "${TOMCAT_HOME}"/logs/catalina.out ]
                 then
-                PREKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+                PREKILL_LOG_NUMBER="$(wc -l "${TOMCAT_HOME}"/logs/catalina.out | awk '{print $1}')"
 
                 # Execute kill -QUIT
-                local java_pid="`pidof $TOMCAT_PROCESS_NAME`"
-                kill -3 $java_pid
-                sleep $KILL_QUIT_TIME_WAIT
+				local java_pid
+                java_pid="$(pidof "${TOMCAT_PROCESS_NAME}")"
+                kill -3 "${java_pid}"
+                sleep "${KILL_QUIT_TIME_WAIT}"
 
-                POSTKILL_LOG_NUMBER="`wc -l ${TOMCAT_HOME}/logs/catalina.out | awk '{print $1}'`"
+                POSTKILL_LOG_NUMBER="$(wc -l "${TOMCAT_HOME}"/logs/catalina.out | awk '{print $1}')"
                 # Calculating the thread dump size.
-                KILLQUIT_LOG_LINES="$((${POSTKILL_LOG_NUMBER} - ${PREKILL_LOG_NUMBER}))"
+                KILLQUIT_LOG_LINES="$((POSTKILL_LOG_NUMBER - PREKILL_LOG_NUMBER))"
 
 		                # Thread dump Analysis
-                if [ ! -z "$THREADDUMP_ANALYSIS" ]
+                if [ -n "${THREADDUMP_ANALYSIS}" ]
                         then
-                        tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out > $THREADDUMP_ANALYSIS_FILE
-                        echo "*** Thread Dump Analysis ***" >> $ATTACHE_FILE
-                        eval "$THREADDUMP_ANALYSIS" >> $ATTACHE_FILE
-                        echo "" >> $ATTACHE_FILE
+                        tail -n ${KILLQUIT_LOG_LINES} "${TOMCAT_HOME}"/logs/catalina.out > "${THREADDUMP_ANALYSIS_FILE}"
+                        echo "*** Thread Dump Analysis ***" >> "${ATTACHE_FILE}"
+                        eval "${THREADDUMP_ANALYSIS}" >> "${ATTACHE_FILE}"
+                        echo "" >> "${ATTACHE_FILE}"
                 fi
 
                 # Output the Thread Dump result and print a sorted version of it right after (count every thread allocated to a specific page)
-                tail -n ${KILLQUIT_LOG_LINES} ${TOMCAT_HOME}/logs/catalina.out | tee -a $ATTACHE_FILE | grep \"http://| cut -d' ' -f1|uniq -c >> $ATTACHE_FILE
+                tail -n ${KILLQUIT_LOG_LINES} "${TOMCAT_HOME}"/logs/catalina.out | tee -a "${ATTACHE_FILE}" | grep \"http://| cut -d' ' -f1|uniq -c >> "${ATTACHE_FILE}"
         else
-                echo "File not found: ${TOMCAT_HOME}/logs/catalina.out. Skipping KILL_QUIT" >> $ATTACHE_FILE
+                echo "File not found: ${TOMCAT_HOME}/logs/catalina.out. Skipping KILL_QUIT" >> "${ATTACHE_FILE}"
         fi
 }
 
@@ -629,23 +632,24 @@ send_Mail ()
 {
 	local short_message="$1"
 
-	if [[ -n "$SERVER_NAME" ]]; then
-		local HOSTNAME_SUBJECT="$SERVER_NAME"
+	if [[ -n "${SERVER_NAME}" ]]; then
+		local HOSTNAME_SUBJECT="${SERVER_NAME}"
 	else
-		local HOSTNAME_SUBJECT="`hostname | cut -d"." -f 1`"
+	    local HOSTNAME_SUBJECT
+		HOSTNAME_SUBJECT="$(hostname | cut -d"." -f 1)"
 	fi
 
-	if [[ ! -e "`which mailx`" ]]; then
+	if [[ ! -e "$(which mailx)" ]]; then
 
 		log "ERROR" "Unable to find mailx binary file! No mails will be send! Log file will be used!"
 
-		echo "${HOSTNAME_SUBJECT}: $MemoryPrefix $short_message" >> $LOG_FILE
-		cat $ATTACHE_FILE >> $LOG_FILE
+		echo "${HOSTNAME_SUBJECT}: ${MemoryPrefix} ${short_message}" >> "${LOG_FILE}"
+		cat "${ATTACHE_FILE}" >> "${LOG_FILE}"
 	else
 
-		log "INFO" "Sending mail notification ($HOSTNAME_SUBJECT): $short_message"
+		log "INFO" "Sending mail notification (${HOSTNAME_SUBJECT}): ${short_message}"
 
-		mailx -s "${HOSTNAME_SUBJECT}: $MemoryPrefix $short_message" $MAIL < $ATTACHE_FILE
+		mailx -s "${HOSTNAME_SUBJECT}: ${MemoryPrefix} ${short_message}" "${MAIL}" < "${ATTACHE_FILE}"
 
 	fi
 
@@ -653,7 +657,7 @@ send_Mail ()
 
 send_report ()
 {
-	log "INFO" "Sending report by email to $MAIL"
+	log "INFO" "Sending report by email to ${MAIL}"
 	
 	get_info
 	send_Mail "Xinit REPORT"
@@ -664,15 +668,17 @@ send_Jabber_Message ()
 
 	local short_message="$1"
 
-	if [[ ! -e "`which sendxmpp`" ]]; then
+	if [[ ! -e "$(which sendxmpp)" ]]; then
 
 		log "ERROR" "sendxmpp file was not found! No notifications will be send on jabber!"
 
 	else
-		log "INFO" "Sending jabber message (`hostname`): $short_message"
-		local ips="`/sbin/ifconfig | grep inet | tr -s ' ' | cut -d " " -f1,2,3`"
-		local load="`uptime`"
-		echo -e "${short_message} \n ****IPs**** \n $ips \n ****LOAD**** \n $load" | sendxmpp -r `hostname` $JABBER_USERS
+		log "INFO" "Sending jabber message ($(hostname)): ${short_message}"
+		local ips
+		ips="$(/sbin/ifconfig | grep inet | tr -s ' ' | cut -d " " -f1,2,3)"
+		local load
+		load="$(uptime)"
+		echo -e "${short_message} \n ****IPs**** \n ${ips} \n ****LOAD**** \n ${load}" | sendxmpp -r "$(hostname)" "${JABBER_USERS}"
 
 	fi
 
@@ -684,22 +690,22 @@ show_report ()
 
 	get_info
 
-	if [[ `which less` ]]; then
+	if [[ $(which less) ]]; then
 
-		less $ATTACHE_FILE
+		less "${ATTACHE_FILE}"
 	
-	elif [[ `which more` ]]; then
+	elif [[ $(which more) ]]; then
 
-		more $ATTACHE_FILE
+		more "${ATTACHE_FILE}"
 
 	else
 
-		cat $ATTACHE_FILE
+		cat "${ATTACHE_FILE}"
 	fi
 	
 	echo ""
 	echo " You can anytime use less or more commands to view the last report."
-	echo " Example: less $ATTACHE_FILE"
+	echo " Example: less ${ATTACHE_FILE}"
 	echo
 }
 
@@ -707,14 +713,15 @@ list_parameters ()
 {
 
 	log "INFO" "Listing all available parameters"
-	. ${LIB_DIR}/default.cfg
-	. ${CONF_DIR}/${XWIKI_CONF_FILE}
+	. "${LIB_DIR}"/default.cfg
+	. "${CONF_DIR}"/"${XWIKI_CONF_FILE}"
 
-	local ALL_PARAMS="`cat ${LIB_DIR}/default.cfg | grep -v "^#" | grep -v "^$" | cut -d"=" -f1`"
+	local ALL_PARAMS
+	ALL_PARAMS=$(grep -v "^\#" "${LIB_DIR}"/default.cfg | grep -v "^$" | cut -d"=" -f1)
 	
 	for param in ${ALL_PARAMS}; do
 
-		echo ${param}=${!param}
+		echo "${param}"="${!param}"
 
 	done
 
@@ -724,27 +731,27 @@ list_parameters ()
 maintenance ()
 {
 
-    XINIT_INSTALL_USER=$(stat -c '%u' ${VAR_DIR})
-    if [[ ${UID} != ${XINIT_INSTALL_USER} ]] ; then
+    XINIT_INSTALL_USER=$(stat -c '%u' "${VAR_DIR}")
+    if [[ ${UID} != "${XINIT_INSTALL_USER}" ]] ; then
         echo "Please use the right user (${XINIT_INSTALL_USER}) to manage maintenance mode."
         exit 1
     fi
 	## It only affects the check_proc and check_http commands, which have no effect in maintenance mode.
 	if [[ $1 == 'on' ]]; then
 	  log "INFO" "Enabling Maintenance mode, wiki won't be automatically restarted..."
-	  echo>${VAR_DIR}/maintenance
+	  echo > "${VAR_DIR}"/maintenance
 	elif [[ $1 == 'off' ]]; then
 	  log "INFO" "Disabling maintenance mode..."
-	  rm -f ${VAR_DIR}/maintenance 2>/dev/null
+	  rm -f "${VAR_DIR}"/maintenance 2>/dev/null
 	elif [[ $1 == 'check' ]]; then
-	  if [[ ! -f $VAR_DIR/maintenance ]]; then
+	  if [[ ! -f ${VAR_DIR}/maintenance ]]; then
 	    echo "Maintenance mode is OFF"
           else
 	    echo "Maintenance mode is ON"
 	  fi
 	else
 	  ## If no action given, we switch the actual state.
-	  if [[ ! -f $VAR_DIR/maintenance ]]; then
+	  if [[ ! -f ${VAR_DIR}/maintenance ]]; then
 	    maintenance on
 	  else
             maintenance off
@@ -758,9 +765,9 @@ maintenance ()
 nagios_info ()
 {
 	
-if [[ $CHECK_HTTP == *yes*  ]]; then 
+if [[ ${CHECK_HTTP} == *yes*  ]]; then 
 
-	echo "$USE_BASIC_AUTH $CHECK_HTTP_URL $HTACCESS_USERNAME $HTACCESS_PASSWORD $EXPECT_HTTP_RESPONSE_CODE $VERSION"
+	echo "${USE_BASIC_AUTH} ${CHECK_HTTP_URL} ${HTACCESS_USERNAME} ${HTACCESS_PASSWORD} ${EXPECT_HTTP_RESPONSE_CODE} ${VERSION}"
 	
 else
 
@@ -772,15 +779,15 @@ fi
 
 start_openoffice ()
 {
-	if [[ -x "$OO_DAEMON_PATH" ]] && [[ $OO_SERVER_PORT -gt 1024 ]]; then
+	if [[ -x "${OO_DAEMON_PATH}" ]] && [[ ${OO_SERVER_PORT} -gt 1024 ]]; then
 
-		if [[ -z "`netstat -tpln | grep $OO_SERVER_PORT`" ]]; then
+		if ! grep -q "${OO_SERVER_PORT}" <<< "$(netstat -tpln)" ; then
 	
-	        	start-stop-daemon -c $TOMCAT_USER -b --start --quiet --oknodo --exec ${OO_DAEMON_PATH} -- -accept="socket,host=127.0.0.1,port=$OO_SERVER_PORT;urp;" -headless -nocrashreport -nodefault -nofirststartwizard -nolockcheck -nologo -norestore
+	        	start-stop-daemon -c "${TOMCAT_USER}" -b --start --quiet --oknodo --exec "${OO_DAEMON_PATH}" -- -accept="socket,host=127.0.0.1,port=${OO_SERVER_PORT};urp;" -headless -nocrashreport -nodefault -nofirststartwizard -nolockcheck -nologo -norestore
 
 			sleep 2
 
-		        if [[ -n "`netstat -tpln | grep $OO_SERVER_PORT`" ]]; then
+				if grep -q "${OO_SERVER_PORT}" <<< "$(netstat -tpln)"; then
 
                 		log "INFO" "OpenOffice successfuly started!"
 
@@ -797,7 +804,7 @@ start_openoffice ()
 		fi
 	else
 
-		log "ERROR" "$OO_DAEMON_PATH not found or Server Port invalid. Server Port must be > 1024!"
+		log "ERROR" "${OO_DAEMON_PATH} not found or Server Port invalid. Server Port must be > 1024!"
 
         fi
 
@@ -805,14 +812,15 @@ start_openoffice ()
 
 stop_openoffice ()
 {	
-	local OO_PID="`pidof soffice.bin`"
+	local OO_PID
+	OO_PID="$(pidof soffice.bin)"
 
-	if [[ -n $OO_PID ]]; then
+	if [[ -n ${OO_PID} ]]; then
 
-		kill -9 $OO_PID
+		kill -9 "${OO_PID}"
 		sleep 2
 
-		if [[ -z "`pidof soffice.bin`" ]]; then
+		if [[ -z "$(pidof soffice.bin)" ]]; then
 
 			log "INFO" "OpenOffice daemon successfuly stopped!"
 
@@ -834,15 +842,15 @@ check_openoffice ()
 {
 	local TEST="$1"
 	
-	if [[ $OO_CHECK -eq 1 ]]; then
-	if [[ $OO_SERVER_TYPE -eq 1 ]]; then
+	if [[ ${OO_CHECK} -eq 1 ]]; then
+	if [[ ${OO_SERVER_TYPE} -eq 1 ]]; then
 
-	        echo -n "Checking OpenOffice Server (type: 1) ... "
-		if [[ -n "`netstat -tpln | grep $OO_SERVER_PORT`" ]]; then
+	    echo -n "Checking OpenOffice Server (type: 1) ... "
+		if grep -q "${OO_SERVER_PORT}" <<< "$(netstat -tpln)" ; then
 			echo OK
 		else
-			if [[ $TEST -ne 1 ]]; then 
-	                        echo "NOT Running. Starting it"
+			if [[ ${TEST} -ne 1 ]]; then 
+	            echo "NOT Running. Starting it"
 				stop_openoffice
 				start_openoffice
 			else
@@ -875,15 +883,15 @@ check_dependencies ()
 	RST=$(tput sgr0) # Reset
 	BOLD=$(tput bold)
 
-	for COMMAND in ${DEPEND_COMMANDS[@]}; do
+	for COMMAND in "${DEPEND_COMMANDS[@]}"; do
 		echo -n "${RST}Checking ${COMMAND} command ... "
-		if command_exists ${COMMAND} ; then
+		if command_exists "${COMMAND}" ; then
 			echo "${BOLD}${GREEN}[OK]${RST}";
 		else
 			echo "${BOLD}${RED}[NOT FOUND]${RST}";
 			echo "Do you want to quit to install it (recommended). Otherwise, some features will be missing. (${BOLD}${GREEN}[y]${RST}/${BOLD}${RED}n${RST})"
-			read resp
-			if [[ $resp == 'n' ]] ; then
+			read -r resp
+			if [[ ${resp} == 'n' ]] ; then
 				continue
 			else
 				echo "Please install ${COMMAND} command.";
@@ -896,15 +904,15 @@ check_dependencies ()
 run_sanitycheck_mysql ()
 {
 	echo "On what database do you want to perform the Sanity Check? [default:xwiki]"
-	read sanitycheck_db
-	if [[ $sanitycheck_db == "" ]] ; then
+	read -r sanitycheck_db
+	if [[ ${sanitycheck_db} == "" ]] ; then
 		sanitycheck_db="xwiki"
 	fi
 
-	if [[ "$(mysql -N -s -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -e "use $sanitycheck_db;show tables" |grep xwikidoc)" == "" ]] ; then
-		echo "Database $db is not a valid XWiki Database"
+	if [[ "$(mysql -N -s -u"${MYSQL_USER}" --password="${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" -e "use ${sanitycheck_db};show tables" |grep xwikidoc)" == "" ]] ; then
+		echo "Database ${db} is not a valid XWiki Database"
 	else
-		mysql -t -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} ${sanitycheck_db} < /var/lib/xinit/sanitycheck-my.sql
+		mysql -t -u"${MYSQL_USER}" --password="${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" "${sanitycheck_db}" < /var/lib/xinit/sanitycheck-my.sql
 	fi
 }
 
@@ -915,20 +923,20 @@ run_spamdetection_mysql ()
         RST=$(tput sgr0) # Reset
         BOLD=$(tput bold)
 
-        SPAM_DATABASES=$(mysql -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -N -s -r -e 'show databases'|grep -v ^information_schema$|grep -v ^mysql$)
-        for spam_db in $SPAM_DATABASES ; do
-           if [[ "$(mysql -t -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -N -s -e "use $spam_db;show tables" |grep xwikidoc)" == "" ]]
+        SPAM_DATABASES=$(mysql -u"${MYSQL_USER}" --password="${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" -N -s -r -e 'show databases'|grep -v ^information_schema$|grep -v ^mysql$)
+        for spam_db in ${SPAM_DATABASES} ; do
+           if [[ "$(mysql -t -u"${MYSQL_USER}" --password="${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" -N -s -e "use ${spam_db};show tables" |grep xwikidoc)" == "" ]]
            then
                 echo "Database $spam_db is not a valid XWiki Database"
            else
 
-             SPAM_LIST=$(mysql -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -e "use $spam_db; select count(XWO_NAME) as coms,XWO_NAME as doc from xwikiobjects where XWO_CLASSNAME='XWiki.XWikiComments' GROUP BY XWO_NAME HAVING coms >= $SPAM_THRESHOLD;")
+             SPAM_LIST=$(mysql -u"${MYSQL_USER}" --password="${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" -e "use ${spam_db}; select count(XWO_NAME) as coms,XWO_NAME as doc from xwikiobjects where XWO_CLASSNAME='XWiki.XWikiComments' GROUP BY XWO_NAME HAVING coms >= ${SPAM_THRESHOLD};")
 
              if [[ $SPAM_LIST != "" ]] ; then
-               echo "${BOLD}${RED}[WARNING]${RST} -  We have found more than $SPAM_THRESHOLD comments in database  *** $spam_db *** :"
-               mysql -t -u${MYSQL_USER} --password=${MYSQL_PASSWORD} -h${MYSQL_HOST} -e "use $spam_db; select count(XWO_NAME) as coms,XWO_NAME as doc from xwikiobjects where XWO_CLASSNAME='XWiki.XWikiComments' GROUP BY XWO_NAME HAVING coms >= $SPAM_THRESHOLD;"
+               echo "${BOLD}${RED}[WARNING]${RST} -  We have found more than ${SPAM_THRESHOLD} comments in database  *** ${spam_db} *** :"
+               mysql -t -u"${MYSQL_USER}" --password="${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" -e "use ${spam_db}; select count(XWO_NAME) as coms,XWO_NAME as doc from xwikiobjects where XWO_CLASSNAME='XWiki.XWikiComments' GROUP BY XWO_NAME HAVING coms >= ${SPAM_THRESHOLD};"
              else
-               echo "${BOLD}${GREEN}[OK]${RST} - No Spam found in $spam_db database."
+               echo "${BOLD}${GREEN}[OK]${RST} - No Spam found in ${spam_db} database."
              fi
            fi
         done
