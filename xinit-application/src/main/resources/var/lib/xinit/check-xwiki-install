@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 check_install ()
 {
@@ -26,19 +26,19 @@ if [[ ! -h ${XWIKI_HOME} ]]; then
 		log "WARNING" "The daemon script xwiki.sh is not executable. You must add execute permission for all users!"
 	fi
 	
-	if [ $(ls /etc/rc?.d/*tomcat.sh | egrep 'rc0|rc1|rc2|rc3|rc4|rc5|rc6' | wc -l) = '7' ]; then 
- 
+	#if [ $(ls /etc/rc?.d/*tomcat.sh | grep -E 'rc0|rc1|rc2|rc3|rc4|rc5|rc6' | wc -l) = '7' ]; then 
+	if [ "$(find /etc/rc[0123456].d/*tomcat.sh | wc -l)" = '7' ]; then 
+
 		log "WARNING" "Daemon script isn't added to rc.d... It won't be started to system launch."
 	fi
     
-
 	
-	if [ x"`grep "xwiki.encoding.*=.*UTF-8" ${XWIKI_HOME}/WEB-INF/xinit.cfg`" == x ]; then
+	if [ "$(grep "xwiki.encoding.*=.*UTF-8" "${XWIKI_HOME}"/WEB-INF/xwiki.cfg)" == "" ]; then
 
 		log "WARNING" "xinit.cfg seems not to be configured for UTF-8 encoding. Check it!"
 	fi
 
-	if [[ x"`grep '<property name="connection.useUnicode">true</property>' ${XWIKI_HOME}/WEB-INF/hibernate.cfg.xml`" == x || x"`grep '<property name="connection.characterEncoding">UTF-8</property>' ${XWIKI_HOME}/WEB-INF/hibernate.cfg.xml`" == x ]]; then
+	if [[ "$(grep '<property name="connection.useUnicode">true</property>' "${XWIKI_HOME}"/WEB-INF/hibernate.cfg.xml)" == "" || "$(grep '<property name="connection.characterEncoding">UTF-8</property>' "${XWIKI_HOME}"/WEB-INF/hibernate.cfg.xml)" == "" ]]; then
 
 		log "WARNING" "Hibernate.cfg.xml seems not to be configured for UTF-8 encoding"
 	fi
@@ -69,12 +69,12 @@ check_tomcat ()
 
 if [[ ! -L ${TOMCAT_HOME} ]]; then
 
-          log "WARNING" "The Tomcat directory seems not created or $TOMCAT_HOME si not an sym link!"
-	  log "WARNING"	"${TOMCTA_HOME} should be a symlink to Tomcat install directory"
+          log "WARNING" "The Tomcat directory seems not created or ${TOMCAT_HOME} si not an sym link!"
+	  log "WARNING"	"${TOMCAT_HOME} should be a symlink to Tomcat install directory"
 
 fi
 
-if [  x"`grep 'URIEncoding.*=.*"UTF-8"' ${TOMCAT_HOME}/conf/server.xml`" == x ]; then
+if [  "$(grep 'URIEncoding.*=.*"UTF-8"' "${TOMCAT_HOME}"/conf/server.xml)" == "" ]; then
 
           log "WARNING" "Tomcat seems not to be configured for UTF-8 encoding"
 
@@ -100,17 +100,14 @@ if [[ ! -f /etc/init.d/mysql ]]; then
 
                 log "INFO" "MySQL seems not be installed"
 
-        elif [ x"`grep "bind-address.*=.*0.0.0.0" ${MYSQL_HOME}/my.cnf`" == x ];then
+        elif [ "$(grep "bind-address.*=.*0.0.0.0" "${MYSQL_HOME}"/my.cnf)" == "" ];then
 
                 log "INFO" "Mysql may not listen on all interfaces."
         fi
 
-	if [[ x"`grep "character-set-server.*=.*utf8" ${MYSQL_HOME}/my.cnf`" == x || x"`grep "default-character-set.*=.*utf8" ${MYSQL_HOME}/my.cnf`" == x || x"`grep "collation-server.*=.*utf8_general_ci" ${MYSQL_HOME}/my.cnf`" == x ]];then
+	if [[ "$(grep "character-set-server.*=.*utf8" "${MYSQL_HOME}"/my.cnf)" == "" || "$(grep "default-character-set.*=.*utf8" "${MYSQL_HOME}"/my.cnf)" == "" || "$(grep "collation-server.*=.*utf8_general_ci" "${MYSQL_HOME}"/my.cnf)" == "" ]];then
 
 		log "WARNING" "Mysql-server seems to be unconfigured for UTF-8. Check ${MYSQL_HOME}/my.cnf and add the utf-8 configuration for client & server"
 
 	fi
 }
-
-
-#
