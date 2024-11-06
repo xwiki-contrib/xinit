@@ -1,0 +1,17 @@
+#!/bin/bash
+
+DEPEND_COMMANDS=('sed' 'awk' 'curl' 'cut' 'grep' 'cat' 'pidof' 'ps' 'date' 'hostname' 'netstat' 'tr' 'uniq' 'sort' 'egrep' 'du' 'top' 'kill' 'wc' 'mailx' 'ifconfig' 'uptime' 'sleep' 'tput')
+
+RED=$(tput setaf 1) # rouge
+GREEN=$(tput setaf 2) # vert
+RST=$(tput sgr0) # RESET
+BOLD=$(tput bold)
+
+for COMMAND in "${DEPEND_COMMANDS[@]}"; do
+    echo -n "${RST}Checking ${COMMAND} command ... "
+    if command -v "${COMMAND}" &> /dev/null; then
+        echo "${BOLD}${GREEN}[OK]${RST}"
+    else
+        echo "${BOLD}${RED}[NOT FOUND]${RST}"
+    fi
+done

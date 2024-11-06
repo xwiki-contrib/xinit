@@ -1,0 +1,10 @@
+[Unit]
+Description=Run XWiki healthcheck every 5 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Unit=xwiki-healthcheck.service
+
+[Install]
+WantedBy=timers.target

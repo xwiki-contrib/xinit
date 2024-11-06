@@ -1,0 +1,294 @@
+#!/bin/bash
+
+# load config
+. /etc/xinit/xinit.cfg
+
+ATTACH_FILE="/tmp/xwiki_health_check_report.txt"
+REQUEST_ERROR_OUTPUT="/tmp/request_error_output.txt"
+CHECK_HTTP_URL=${CHECK_HTTP_URL:-"http://localhost:8080"}
+CHECK_HTTP_TIMEOUT=${CHECK_HTTP_TIMEOUT:-50}
+CHECK_HTTP_TRIES=${CHECK_HTTP_TRIES:-2}
+CHECK_HTTP_WAITRETRY=${CHECK_HTTP_WAITRETRY:-10}
+LCK=${LCK:-"/usr/lib/xwiki-jetty/tmp/xwiki-8080.lck"}
+MAINTENANCE_FILE=${MAINTENANCE_FILE:-"/var/tmp/xwiki_maintenance"}
+JETTY_BASE=${JETTY_BASE:-"/usr/lib/xwiki-jetty"}
+XWIKI_INSTALL_DIR=${XWIKI_INSTALL_DIR:-"/usr/lib/xwiki-jetty/webapps/xwiki"}
+LOG_FILE=${LOG_FILE:-"/var/log/xwiki-health-check/xinit.log"}
+
+log ()
+{
+    local severity="$1"
+    local message="$2"
+    local _date
+    local _time
+    _date="$(date +%d-%m-%Y)"
+    _time="$(date +%T)"
+
+    echo "${_date} ${_time} [${severity}]: ${message}" >>"${LOG_FILE}"
+    echo "${message}"
+}
+
+collect_info() {
+    # Empty the file if it exists
+    >"${ATTACH_FILE}"
+
+    if [[ -n "${SERVER_NAME}" ]]; then
+        HOSTNAME_SUBJECT="${SERVER_NAME}"
+    else
+        HOSTNAME_SUBJECT="$(hostname | cut -d"." -f1)"
+    fi
+    echo "##### SERVER NAME #####" >>"${ATTACH_FILE}"
+    echo "${HOSTNAME_SUBJECT}" >>"${ATTACH_FILE}"
+    echo "" >>"${ATTACH_FILE}"
+
+    echo "##### XWIKI VERSION #####" >>"${ATTACH_FILE}"
+    if [[ -s ${XWIKI_INSTALL_DIR}/WEB-INF/version.properties ]]; then
+        XWIKI_VERSION=$(grep "version=" "${XWIKI_INSTALL_DIR}/WEB-INF/version.properties" | cut -d"=" -f2)
+        echo "${XWIKI_VERSION}" >>"${ATTACH_FILE}"
+    else
+        echo "Version information not found" >>"${ATTACH_FILE}"
+    fi
+    echo "" >>"${ATTACH_FILE}"
+
+    echo "##### SYSTEM INFORMATION #####" >>"${ATTACH_FILE}"
+    uname -a >>"${ATTACH_FILE}"
+    echo "" >>"${ATTACH_FILE}"
+
+    echo "##### IP ADDRESSES #####" >>"${ATTACH_FILE}"
+    /sbin/ifconfig | grep 'inet ' | awk '{print $2}' >>"${ATTACH_FILE}"
+    echo "" >>"${ATTACH_FILE}"
+
+    echo "##### DISK USAGE #####" >>"${ATTACH_FILE}"
+    df -h >>"${ATTACH_FILE}"
+    echo "" >>"${ATTACH_FILE}"
+
+    echo "##### MEMORY USAGE #####" >>"${ATTACH_FILE}"
+    free -h >>"${ATTACH_FILE}"
+    echo "" >>"${ATTACH_FILE}"
+
+    echo "##### JETTY PROCESS #####" >>"${ATTACH_FILE}"
+    echo -n "Checking Jetty process ... "
+    CHECK_PROC_RESTART="true"
+    # If pid file doesn't exists...
+    if [[ ! -e ${LCK} ]]; then
+        echo "FAILED"
+        if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+            echo "CRITICAL : Jetty pid file not found!"
+        fi
+        # If pid file exists but is empty
+    elif [[ ! -s ${LCK} ]]; then
+        echo "FAILED"
+        if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+            log "CRITICAL" "Void pid!"
+        fi
+        # If pid file exists but the pid listed in this file doesn't exists
+    elif [[ -s ${LCK} ]]; then
+        pid="$(cat "${LCK}")"
+        if [[ -z "$(ps --pid="${pid}" -o comm=)" ]]; then
+            echo "FAILED"
+            if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+                log "CRITICAL" "Java process died"
+            fi
+        else
+            log "OK" "Jetty process is fine"
+        fi
+    fi
+
+    echo "##### RECENT XWIKI LOGS #####" >>"${ATTACH_FILE}"
+    # Find the most recent jetty.log file
+    LATEST_JETTY_LOG=$(ls -1t "${JETTY_BASE}/logs/"*.jetty.log 2 >/dev/null | head -n 1)
+    if [[ -f "${LATEST_JETTY_LOG}" ]]; then
+        tail -n ${LOG_LINE_NUMBER} "${LATEST_JETTY_LOG}" >>"${ATTACH_FILE}"
+    else
+        echo "XWiki log file not found in ${JETTY_BASE}/logs/" >>"${ATTACH_FILE}"
+    fi
+    echo "" >>"${ATTACH_FILE}"
+
+    # Check for memory issues in logs
+    HEAP_SPACE_ISSUE=0
+    PERMGEN_SPACE_ISSUE=0
+    if grep -q "java.lang.OutOfMemoryError: Java heap space" "${ATTACH_FILE}"; then
+        HEAP_SPACE_ISSUE=1
+    elif grep -q "java.lang.OutOfMemoryError: PermGen space" "${ATTACH_FILE}"; then
+        PERMGEN_SPACE_ISSUE=1
+    fi
+
+    # Set MemoryPrefix for the email subject
+    if [[ "${HEAP_SPACE_ISSUE}" -eq 1 ]]; then
+        MemoryPrefix="[Low Heap]"
+    elif [[ "${PERMGEN_SPACE_ISSUE}" -eq 1 ]]; then
+        MemoryPrefix="[Low PermGen]"
+    else
+        MemoryPrefix=""
+    fi
+
+    echo "##### MAINTENANCE STATUS #####" >>"${ATTACH_FILE}"
+    if [[ -f ${MAINTENANCE_FILE} ]]; then
+        echo "Maintenace mode is ENABLED !!" >>"${ATTACH_FILE}"
+    else
+        echo "Maintenance mode is DISABLED (Good)" >>"${ATTACH_FILE}"
+    fi
+    echo "" >>"${ATTACH_FILE}"
+
+    {
+        echo "Hello,"
+        echo ""
+        echo "XWiki service on ${HOSTNAME_SUBJECT} has encountered an issue and was restarted."
+        echo "Reason: ${FAILURE_REASON}."
+        echo ""
+        echo "Please find below the detailed report:"
+        echo ""
+        cat "${ATTACH_FILE}"
+    } >"${ATTACH_FILE}.tmp" && mv "${ATTACH_FILE}.tmp" "${ATTACH_FILE}"
+}
+
+send_Mail() {
+    local short_message="$1"
+    if [[ -n "${SERVER_NAME}" ]]; then
+        local HOSTNAME_SUBJECT="${SERVER_NAME}"
+    else
+        local HOSTNAME_SUBJECT
+        HOSTNAME_SUBJECT="$(hostname | cut -d"." -f 1)"
+    fi
+
+    SUBJECT="${HOSTNAME_SUBJECT}: ${MemoryPrefix} ${short_message}"
+
+    if ! command -v mailx &>/dev/null; then
+        log "ERROR" "Unable to find mailx binary file! No mails will be sent!"
+        echo "${SUBJECT}" >>/var/log/xwiki_health_check.log
+        cat "${ATTACH_FILE}" >>/var/log/xwiki_health_check.log
+    else
+        log "INFO" "Sending mail notification (${SUBJECT})"
+        mailx -s "${SUBJECT}" "${MAIL}" <"${ATTACH_FILE}"
+    fi
+}
+
+sanitize_url() {
+    local input_url="$1"
+    #remove trailing backslashes
+    input_url="${input_url%/}"
+
+    if [[ "$input_url" == */xwiki/rest/wikis* ]]; then
+        input_url="${input_url%%/xwiki/rest/wikis*}"
+    fi
+
+    echo "$input_url"
+}
+
+check_http() {
+    # clean CHECK_HTTP_URL before use
+    local sanitized_url
+    sanitized_url=$(sanitize_url "${CHECK_HTTP_URL}")
+    local specific_endpoint="/xwiki/rest/wikis"
+    local url_to_check="${sanitized_url}${specific_endpoint}"
+
+    echo -n "Checking HTTP responsiveness at URL: ${url_to_check} ... "
+    if [[ "${CHECK_HTTP}" != "yes" && "${FORCE}" != "force" ]]; then
+        log "WARNING" "HTTP check is not enabled. Enable by setting CHECK_HTTP=yes in xinit.cfg or use force. Exiting."
+        exit 1
+    fi
+    if [[ -z "${CHECK_HTTP_URL}" ]]; then
+        log "ERROR" "No URL specified for HTTP availability check. See CHECK_HTTP_URL in configuration."
+        exit 1
+    fi
+
+    cat /dev/null >"${REQUEST_ERROR_OUTPUT}"
+
+    local curl_options=("--write-out" "%{http_code}" "--digest" "--location-trusted" "--insecure" "--max-time" "${CHECK_HTTP_TIMEOUT}" "--retry" "${CHECK_HTTP_TRIES}" "--retry-delay" "${CHECK_HTTP_WAITRETRY}" "--silent" "--show-error" "--output" "/dev/null")
+
+    if [[ "${USE_BASIC_AUTH}" == "yes" ]]; then
+        curl_options+=("-u" "${HTACCESS_USERNAME}:${HTACCESS_PASSWORD}")
+    fi
+
+    RESPONSE_CODE=$(curl "${curl_options[@]}" "${url_to_check}" 2> "${REQUEST_ERROR_OUTPUT}")
+    EXIT_CODE="$?"
+
+    # DNS check (error code 6 indicates a DNS problem)
+    if [[ "${EXIT_CODE}" -eq 6 ]]; then
+        if [[ "${USE_DNS}" == "yes" ]]; then
+            log "WARNING" "DNS Problem. Unable to resolve ${sanitized_url}"
+            exit 1
+        fi
+    fi
+
+    RESPONSE_CODE_MATCH=0
+    for TEST_RESPONSE_CODE in $(echo "${EXPECT_HTTP_RESPONSE_CODE}" | tr ',' '\n'); do
+        if [[ "${TEST_RESPONSE_CODE}" -eq "${RESPONSE_CODE}" ]]; then
+            RESPONSE_CODE_MATCH=1
+        fi
+    done
+
+    if [[ "${RESPONSE_CODE_MATCH}" -ne 1 ]]; then
+        log "CRITICAL" "Wiki not responding! Response: ${RESPONSE_CODE}, Expected: ${EXPECT_HTTP_RESPONSE_CODE}, Exit: ${EXIT_CODE}"
+        FAILURE_REASON="CRITICAL! : Wiki not responding!"
+    else
+        log "INFO" "Wiki is available! Response: ${RESPONSE_CODE}, Expected: ${EXPECT_HTTP_RESPONSE_CODE}"
+    fi
+}
+
+
+####################
+### HEALTH CHECK ###
+####################
+
+# skips health check if in maintenance mode
+if [[ -f ${MAINTENANCE_FILE} ]]; then
+    log "INFO" "Maintenance mode is ON. Skipping health check."
+    exit 0
+fi
+
+FAILURE_REASON=""
+
+if [[ "${PROCESS_CHECK}" == "yes" ]]; then
+    echo -n "Checking Java process ... "
+    if [[ ! -e ${LCK} ]]; then
+        if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+            log "CRITICAL" "Jetty pid file not found!"
+            FAILURE_REASON="Critical : Jetty pid file not found!"
+        fi
+    elif [[ ! -s ${LCK} ]]; then
+        if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+            log "CRITICAL" "Void pid!"
+            FAILURE_REASON="Critical : Void pid!"
+        fi
+    elif [[ -s ${LCK} ]]; then
+        pid="$(cat "${LCK}")"
+        if ! ps --pid="${pid}" -o comm= | grep -q "java"; then
+            echo "FAILED"
+            log "CRITICAL" "Jetty (Java) process died or wrong process is running"
+            FAILURE_REASON="CRITICAL: No Jetty Java process found!"
+        else
+            echo "OK"
+            log "INFO" "Jetty process is running fine with PID: $pid"
+        fi
+    fi
+fi
+
+# HTTP check
+if [[ "${CHECK_HTTP}" == "yes" ]]; then
+    check_http
+fi
+
+
+if [[ -n "${FAILURE_REASON}" ]]; then
+    collect_info
+
+    log "CRITICAL" "${FAILURE_REASON}. Restarting service..."
+    systemctl restart xwiki.service
+    sleep 10
+    if systemctl is-active xwiki.service &>/dev/null; then
+        log "INFO" "XWiki service restarted successfully."
+    else
+        log "CRITICAL" "XWiki service restart failed!"
+    fi
+
+    SHORT_MESSAGE="XWiki Health Alert - ${FAILURE_REASON}"
+
+    if [[ "${SEND_MAIL_NOTIFICATION}" == "yes" ]]; then
+        send_Mail "${SHORT_MESSAGE}"
+    fi
+fi
+
+
+rm -f "${ATTACH_FILE}"
+rm -f "${REQUEST_ERROR_OUTPUT}"

@@ -1,0 +1,12 @@
+/var/log/xwiki-health-check/*.log {
+    daily
+    rotate 14
+    compress
+    missingok
+    notifempty
+    copytruncate
+    delaycompress
+    postrotate
+        systemctl reload xwiki-healthcheck.service > /dev/null 2>/dev/null || true
+    endscript
+}

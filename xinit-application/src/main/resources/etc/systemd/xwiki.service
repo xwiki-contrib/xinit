@@ -1,23 +1,34 @@
 [Unit]
-Documentation=man:systemd-sysv-generator(8)
-SourcePath=/etc/init.d/xwiki.sh
-Description=LSB: Xinit script to manage XWiki availability.
-After=remote-fs.target
+Description=XWiki instance powered by Jetty
+After=network.target
 
 [Service]
-User=XWIKI_USER
-Group=XWIKI_GROUP
-Type=forking
-Restart=no
-TimeoutSec=5min
-IgnoreSIGPIPE=no
+Type=simple
+User=xwiki
+Group=xwiki
+WorkingDirectory=/usr/lib/xwiki-jetty
+EnvironmentFile=/etc/xinit/xinit.cfg
+ExecStart=/usr/lib/xwiki-jetty/start_xwiki.sh
+ExecStop=/usr/lib/xwiki-jetty/stop_xwiki.sh
 KillMode=process
-GuessMainPID=no
-RemainAfterExit=yes
-SuccessExitStatus=5 6
-ExecStart=/etc/init.d/xwiki.sh start
-ExecStop=/etc/init.d/xwiki.sh stop
-Environment=LAUNCHED_BY_SYSTEMD=true
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=120s
+LockPersonality=true
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectKernelLogs=true
+RestrictSUIDSGID=true
+PrivateTmp=true
+PrivateUsers=true
+NoExecPaths=/tmp /var/tmp
+NoNewPrivileges=true
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target

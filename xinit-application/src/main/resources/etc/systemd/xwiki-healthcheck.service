@@ -1,0 +1,6 @@
+[Unit]
+Description=XWiki Health Check Service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/xwiki_health_check

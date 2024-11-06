@@ -1,0 +1,6 @@
+[Unit]
+Description=XWiki Maintenance Mode Reminder Service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/xwiki_maintenance_reminder

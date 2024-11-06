@@ -1,0 +1,32 @@
+#!/bin/bash
+
+### WARNING ! This script is copied from the regular Xinit branch
+### and hasn't been tested yet.
+
+# load conf
+. /etc/xinit/xinit.cfg
+
+MYSQL_USER="${MYSQL_USER}"
+MYSQL_PASSWORD="${MYSQL_PASSWORD}"
+MYSQL_HOST="${MYSQL_HOST:-localhost}"
+SPAM_THRESHOLD="${SPAM_THRESHOLD:-50}"
+
+DBS=$(mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" -N -e "SHOW DATABASES;" | grep -Ev "(information_schema|mysql|performance_schema|sys)")
+
+for DB in ${DBS}; do
+    echo "Checking database ${DB} for spam..."
+    RESULT=$(mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" -N -e "
+    USE ${DB};
+    SELECT COUNT(XWO_NAME) AS coms, XWO_NAME AS doc
+    FROM xwikiobjects
+    WHERE XWO_CLASSNAME='XWiki.XWikiComments'
+    GROUP BY XWO_NAME
+    HAVING coms >= ${SPAM_THRESHOLD};")
+
+    if [[ -n "${RESULT}" ]]; then
+        echo "Spam detected in database ${DB}:"
+        echo "${RESULT}"
+    else
+        echo "No spam detected in database ${DB}."
+    fi
+done

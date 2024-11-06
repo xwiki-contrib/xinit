@@ -1,0 +1,17 @@
+#!/bin/bash
+. /etc/xinit/xinit.cfg
+MAINTENANCE_FILE=${MAINTENANCE_FILE:-"/var/tmp/xwiki_maintenance"}
+
+if [[ -f "${MAINTENANCE_FILE}" ]]; then
+    SUBJECT="XWiki Maintenance Mode Reminder"
+    BODY="Hello!
+
+This is a reminder that maintenance mode on $(hostname) is currently enabled.
+This means that the wiki won't automatically restart in case it crashes.
+Please remember to disable this maintenance mode once done with work on it.
+
+Thank you !"
+    if [[ "${SEND_MAIL_NOTIFICATION}" == "yes" ]]; then
+        echo "${BODY}" | mailx -s "${SUBJECT}" "${MAIL}"
+    fi
+fi

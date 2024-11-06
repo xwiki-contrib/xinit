@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# load xinit conf
+. /etc/xinit/xinit.cfg
+
+EMAIL_RECIPIENTS="${MAIL}"
+ENABLED="${SEND_MAIL_NOTIFICATION}"
+ATTACH_FILE="/tmp/xwiki_send_report.txt"
+
+/usr/local/bin/xwiki_get_info > "${ATTACH_FILE}"
+
+SUBJECT="XWiki Report - $(hostname)"
+
+if [[ "${ENABLED}" == "yes" ]]; then
+    if command -v mailx &> /dev/null; then
+        mailx -s "${SUBJECT}" "${EMAIL_RECIPIENTS}" < "${ATTACH_FILE}"
+    else
+        echo "mailx not found. Cannot send email."
+    fi
+else
+    echo "Email notifications are disabled."
+fi
+
+# cleanup
+rm -f "${ATTACH_FILE}"

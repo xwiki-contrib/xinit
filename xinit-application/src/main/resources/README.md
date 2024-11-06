@@ -8,16 +8,6 @@ Simply run :
 
     $ sudo ./install.sh --install
 
-OSX
----
-
-You will need to install a `pidof` utility. For example [this one](http://hints.macworld.com/article.php?story=20030618114543169)
-
-Then :
-
-    $ sudo mkdir /etc/init.d
-    $ sudo ./install.sh --install
-
 Dependencies
 ============
 
@@ -35,6 +25,14 @@ Configuration is located in /etc/xinit/xinit.cfg with sensible defaults.
 
 Change Log
 ==========
+### Xinit Version 1.4-JETTY - 01/11/2024
+* Splitted the functions in multiples independant scripts
+* Centralized configuration in xinit.cfg
+* General use of systemd for services and timers
+* Extra sandboxing of the XWiki instance using systemd
+* Interactive installer
+* More comprehensive mail titles
+
 ### Xinit Version 1.3 - 08/11/2023 ###
 * Added the possibility to run xinit with a non-root user.
 * Added the possibility to set the cronjob checks via xwiki.sh script.

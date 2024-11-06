@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# load xinit conf
+. /etc/xinit/xinit.cfg
+
+echo "Listing XWiki Configuration Parameters:"
+echo "---------------------------------------"
+
+grep -E '^[A-Z_]+=' /etc/xinit/xinit.cfg

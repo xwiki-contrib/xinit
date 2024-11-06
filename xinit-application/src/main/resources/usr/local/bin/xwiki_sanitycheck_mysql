@@ -1,0 +1,15 @@
+#!/bin/bash
+
+### WARNING ! This script is copied from the regular Xinit branch
+### and hasn't been tested yet.
+
+. /etc/xinit/xinit.cfg
+
+MYSQL_USER="${MYSQL_USER}"
+MYSQL_PASSWORD="${MYSQL_PASSWORD}"
+MYSQL_HOST="${MYSQL_HOST:-localhost}"
+DB_NAME="${DB_NAME}"
+
+echo "Running sanity check on database ${DB_NAME}..."
+
+mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" -h"${MYSQL_HOST}" "${DB_NAME}" < /usr/local/bin/sanitycheck-my.sql

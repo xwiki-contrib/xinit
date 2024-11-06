@@ -1,0 +1,63 @@
+#!/bin/bash
+
+COMMAND="$1"
+shift
+
+case "${COMMAND}" in
+    start)
+        systemctl start xwiki.service
+        ;;
+    stop)
+        systemctl stop xwiki.service
+        ;;
+    restart)
+        systemctl restart xwiki.service
+        ;;
+    status)
+        systemctl status xwiki.service
+        ;;
+    maintenance)
+        /usr/local/bin/xwiki_maintenance "$@"
+        ;;
+    check-proc|-cp)
+        /usr/local/bin/xwiki_check_proc "$@"
+        ;;
+    get-info|-gi)
+        /usr/local/bin/xwiki_get_info "$@"
+        ;;
+    send-report|-sr)
+        /usr/local/bin/xwiki_send_report "$@"
+        ;;
+    list-parameters|-lp)
+        /usr/local/bin/xwiki_list_parameters "$@"
+        ;;
+    check-dependencies|-cd)
+        /usr/local/bin/xwiki_check_dependencies "$@"
+        ;;
+    sanitycheck-mysql)
+        /usr/local/bin/xwiki_sanitycheck_mysql "$@"
+        ;;
+    spamdetection-mysql)
+        /usr/local/bin/xwiki_spamdetection_mysql "$@"
+        ;;
+    help|--help|-h)
+        echo "Usage: xwiki [command]"
+        echo "Commands:"
+        echo "  start                 Start the XWiki service"
+        echo "  stop                  Stop the XWiki service"
+        echo "  restart               Restart the XWiki service"
+        echo "  status                Show the XWiki service status"
+        echo "  maintenance [on|off|status]  Manage maintenance mode"
+        echo "  check-proc            Check if the XWiki Java process is running"
+        echo "  get-info              Get system and XWiki information"
+        echo "  send-report           Send a report via email"
+        echo "  list-parameters       List XWiki configuration parameters"
+        echo "  check-dependencies    Check required system dependencies"
+        echo "  sanitycheck-mysql     Run database sanity check"
+        echo "  spamdetection-mysql   Run spam detection on databases"
+        ;;
+    *)
+        echo "Unknown command: ${COMMAND}"
+        echo "Run 'xwiki help' for usage."
+        ;;
+esac

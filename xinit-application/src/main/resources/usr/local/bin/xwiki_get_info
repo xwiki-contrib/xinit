@@ -1,0 +1,118 @@
+#!/bin/bash
+
+. /etc/xinit/xinit.cfg
+
+ATTACH_FILE="/tmp/xwiki_info_report.txt"
+LOG_LINES=20 # PRINT LESS LINES IN THIS REPORT
+XWIKI_INSTALL_DIR=${XWIKI_INSTALL_DIR:-"/usr/lib/xwiki-jetty/webapps/xwiki"}
+
+collect_info() {
+    # Empty the file if it exists
+    > "${ATTACH_FILE}"
+    if [[ -n "${SERVER_NAME}" ]]; then
+        HOSTNAME_SUBJECT="${SERVER_NAME}"
+    else
+        HOSTNAME_SUBJECT="$(hostname | cut -d"." -f1)"
+    fi
+    echo "##### SERVER NAME #####" >> "${ATTACH_FILE}"
+    echo "${HOSTNAME_SUBJECT}" >> "${ATTACH_FILE}"
+    echo "" >> "${ATTACH_FILE}"
+
+    echo "##### XWIKI VERSION #####" >> "${ATTACH_FILE}"
+    if [[ -s ${XWIKI_INSTALL_DIR}/WEB-INF/version.properties ]]; then
+        XWIKI_VERSION=$(grep "version=" "${XWIKI_INSTALL_DIR}/WEB-INF/version.properties" | cut -d"=" -f2)
+        echo "${XWIKI_VERSION}" >> "${ATTACH_FILE}"
+    else
+        echo "Version information not found" >> "${ATTACH_FILE}"
+    fi
+    echo "" >> "${ATTACH_FILE}"
+
+    echo "##### SYSTEM INFORMATION #####" >> "${ATTACH_FILE}"
+    uname -a >> "${ATTACH_FILE}"
+    echo "" >> "${ATTACH_FILE}"
+
+    echo "##### IP ADDRESSES #####" >> "${ATTACH_FILE}"
+    /sbin/ifconfig | grep 'inet ' | awk '{print $2}' >> "${ATTACH_FILE}"
+    echo "" >> "${ATTACH_FILE}"
+    
+    echo "##### DISK USAGE #####" >> "${ATTACH_FILE}"
+    df -h >> "${ATTACH_FILE}"
+    echo "" >> "${ATTACH_FILE}"
+
+    echo "##### MEMORY USAGE #####" >> "${ATTACH_FILE}"
+    free -h >> "${ATTACH_FILE}"
+    echo "" >> "${ATTACH_FILE}"
+
+    echo "##### JETTY PROCESS CHECK #####" >> "${ATTACH_FILE}"
+    echo -n "Checking Java process ... " >> "${ATTACH_FILE}"
+    CHECK_PROC_RESTART="true"
+	if [[ ! -e ${LCK} ]]; then
+		echo "FAILED" >> "${ATTACH_FILE}"
+		log "CRITICAL" "Jetty pid file not found!"
+		if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+            echo "" >> "${ATTACH_FILE}"
+			echo "Jetty pid file not found!" >> "${ATTACH_FILE}"
+            echo "" >> "${ATTACH_FILE}"
+		fi
+	elif [[ ! -s ${LCK} ]]; then
+		echo "FAILED" >> "${ATTACH_FILE}"
+		log "CRITICAL" "Void pid!"
+		if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+            echo "" >> "${ATTACH_FILE}"
+			echo "Void pid!" >> "${ATTACH_FILE}"
+            echo "" >> "${ATTACH_FILE}"
+		fi
+	elif [[ -s ${LCK} ]]; then
+		pid="$(cat "${LCK}")"
+		if ! ps --pid="${pid}" -o comm= | grep -q "java"; then
+			echo "CRITICAL : Jetty (Java) process died or wrong process is running" >> "${ATTACH_FILE}"
+			if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+                echo "" >> "${ATTACH_FILE}"
+				echo "Java process died" >> "${ATTACH_FILE}"
+                echo "" >> "${ATTACH_FILE}"
+			fi
+		else
+            echo "" >> "${ATTACH_FILE}"
+            echo "Jetty process is running fine with PID: $pid" >> "${ATTACH_FILE}"
+		fi
+	fi
+
+    echo "" >> "${ATTACH_FILE}"
+    echo "##### RECENT XWIKI LOGS #####" >> "${ATTACH_FILE}"
+    #most recent jetty.log
+    LATEST_JETTY_LOG=$(ls -1t "${JETTY_BASE}/logs/"*.jetty.log 2>/dev/null | head -n 1)
+    if [[ -f "${LATEST_JETTY_LOG}" ]]; then
+        tail -n ${LOG_LINES} "${LATEST_JETTY_LOG}" >> "${ATTACH_FILE}"
+    else
+        echo "XWiki log file not found in ${JETTY_BASE}/logs/" >> "${ATTACH_FILE}"
+    fi
+    echo "" >> "${ATTACH_FILE}"
+    #memory issues in logs?
+    HEAP_SPACE_ISSUE=0
+    PERMGEN_SPACE_ISSUE=0
+    if grep -q "java.lang.OutOfMemoryError: Java heap space" "${ATTACH_FILE}"; then
+        HEAP_SPACE_ISSUE=1
+    elif grep -q "java.lang.OutOfMemoryError: PermGen space" "${ATTACH_FILE}"; then
+        PERMGEN_SPACE_ISSUE=1
+    fi
+    #set the title accordingly
+    if [[ "${HEAP_SPACE_ISSUE}" -eq 1 ]]; then
+        MemoryPrefix="[Low Heap]"
+    elif [[ "${PERMGEN_SPACE_ISSUE}" -eq 1 ]]; then
+        MemoryPrefix="[Low PermGen]"
+    else
+        MemoryPrefix=""
+    fi
+
+    echo "##### MAINTENANCE STATUS #####" >> "${ATTACH_FILE}"
+    if [[ -f ${MAINTENANCE_FILE} ]]; then
+        echo "Maintenace mode is ENABLED !!" >> "${ATTACH_FILE}"
+    else
+        echo "Maintenance mode is DISABLED (Good)" >> "${ATTACH_FILE}"
+    fi
+    echo "" >> "${ATTACH_FILE}"
+}
+
+collect_info
+cat "${ATTACH_FILE}"
+rm -f "${ATTACH_FILE}"

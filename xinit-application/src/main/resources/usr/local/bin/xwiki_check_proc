@@ -1,0 +1,45 @@
+#!/bin/bash
+. /etc/xinit/xinit.cfg
+check_proc ()
+{
+	echo -n "Checking Java process ... "
+
+    CHECK_PROC_RESTART="true"
+
+	# If pid file doesn't exists...
+	if [[ ! -e ${LCK} ]]; then
+
+		echo "FAILED"
+		if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+			echo "CRITICAL : Jetty pid file not found!"
+			echo "Please restart XWiki"
+		fi
+
+	# If pid file exists but is empty
+	elif [[ ! -s ${LCK} ]]; then
+
+		echo "FAILED"
+		log "CRITICAL" "Void pid!"
+		if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+			echo "CRITICAL : Void pid!"
+			echo "Please restart XWiki"
+		fi
+
+	# If pid file exists but the pid listed in this file doesn't exists
+	elif [[ -s ${LCK} ]]; then
+
+		pid="$(cat "${LCK}")"
+		if ! ps --pid="${pid}" -o comm= | grep -q "java"; then
+
+			echo "FAILED"
+			if [[ "$1" -ne 1 ]] && [[ ! -f ${MAINTENANCE_FILE} ]]; then
+				echo "CRITICAL : Java process died"
+				echo "Please restart XWiki"
+			fi
+		else
+			echo "OK: Jetty process is running fine with PID: $pid"
+		fi
+	fi
+}
+
+check_proc
